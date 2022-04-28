@@ -3,6 +3,7 @@ import { Menu, Transition } from '@headlessui/react'
 import { MenuAlt1Icon, ViewListIcon, XIcon } from '@heroicons/react/outline'
 import { SearchIcon} from '@heroicons/react/solid'
 import {duration} from "moment";
+import filesize from "file-size"
 
 const navigation = [
   { name: 'Latest', href: '#', icon: ViewListIcon, current: true },
@@ -46,7 +47,7 @@ function Latest() {
             Data Type
           </th>
           <th className="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            File Size (Byte)
+            File Size
           </th>
           <th className="hidden md:table-cell px-6 py-3 border-b border-gray-200 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
             Delay
@@ -71,7 +72,7 @@ function Latest() {
                 {item.data_type}
               </td>
               <td className="px-6 py-3 text-sm text-gray-500 font-normal">
-                {item.rough_size}
+                {filesize(item.rough_size).human('si')}
               </td>
               <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-sm text-gray-500 text-right">
                 {duration(item.delay, 'seconds').humanize()}
