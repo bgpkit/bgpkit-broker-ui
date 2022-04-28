@@ -50,7 +50,7 @@ function Latest() {
             File Size
           </th>
           <th className="hidden md:table-cell px-6 py-3 border-b border-gray-200 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Delay
+            Last update at
           </th>
           <th className="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
             URL
@@ -75,7 +75,7 @@ function Latest() {
                 {filesize(item.rough_size).human('si')}
               </td>
               <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-sm text-gray-500 text-right">
-                {duration(item.delay, 'seconds').humanize()}
+                {duration(item.delay, 'seconds').humanize()} ago
               </td>
               <td className="px-6 py-3 text-sm text-gray-500 font-normal">
                 <a href={item.item_url} className="text-indigo-600 hover:text-indigo-900">
