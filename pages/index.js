@@ -92,7 +92,7 @@ function Latest() {
             (
             <tr key={item.item_url} className={item.bg}>
               <td className={"px-6 py-3 whitespace-nowrap text-sm font-normal text-gray-500"}>
-                  <a href={item.collector_url} className="truncate hover:text-gray-600">
+                  <a href={item.collector_url} className="truncate hover:text-gray-600 underline">
                         {item.collector_id}
                   </a>
               </td>
@@ -105,14 +105,14 @@ function Latest() {
               <td className="px-6 py-3 text-sm text-gray-500 font-normal">
                 {item.data_type}
               </td>
-              <td className="px-6 py-3 text-sm text-gray-500 font-normal">
+              <td className={`px-6 py-3 text-sm text-gray-500 font-normal ${item.rough_size<100? "text-yellow-600": ""}`}>
                 {filesize(item.rough_size).human('si')}
               </td>
-                <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-sm text-gray-500 text-right">
+                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-500 text-right">
                   {duration(item.delay, 'seconds').humanize()} ago
                 </td>
               <td className="px-6 py-3 text-sm text-gray-500 font-normal">
-                <a href={item.item_url} className="text-indigo-600 hover:text-indigo-500">
+                <a href={item.item_url} className="text-indigo-600 hover:text-indigo-500 underline">
                   Download
                 </a>
               </td>
