@@ -23,7 +23,7 @@ export default function SideBar(props) {
                 {/* Static sidebar for desktop */}
                 <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:border-r lg:border-gray-200 lg:pt-5 lg:pb-4 lg:bg-gray-100">
                     <div className="flex items-center flex-shrink-0 px-6 h-8">
-                        <a href="https://github.com/bgpkit" target="_blank">BGPKIT</a>
+                        <a href="https://github.com/bgpkit" target="_blank" rel="noreferrer">BGPKIT</a>
                     </div>
                     {/* Sidebar component, swap this element with another sidebar if you like */}
                     <div className="mt-6 h-0 flex-1 flex flex-col overflow-y-auto">

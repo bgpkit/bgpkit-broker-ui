@@ -141,7 +141,7 @@ export default function Example() {
                   src="https://spaces.bgpkit.org/assets/logos/icon-transparent.png"
                   alt="BGPKIT"
               />
-              <a href="https://github.com/bgpkit" target="_blank"> BGPKIT  Broker V2 Latest Data </a>
+              <a href="https://github.com/bgpkit" target="_blank" rel="noreferrer"> BGPKIT  Broker V2 Latest Data </a>
             </div>
             <main className="flex-1">
               {/* Page title & actions */}
