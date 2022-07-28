@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useState} from 'react'
 import { Menu, Transition } from '@headlessui/react'
-import { MenuAlt1Icon, ViewListIcon, XIcon } from '@heroicons/react/outline'
+import { MenuAlt1Icon, ViewListIcon, XIcon, ExclamationIcon } from '@heroicons/react/outline'
 import { SearchIcon} from '@heroicons/react/solid'
 import {duration} from "moment";
 import filesize from "file-size"
@@ -27,17 +27,51 @@ function Latest() {
   if (isLoading) return <p>Loading...</p>
   if (!data) return <p>No profile data</p>
 
+  const icon_normal = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="green" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+
+  const icon_warn = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="red" strokeWidth={3}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+  </svg>
+
+  const icon_deprecated = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+
+  for (let item of data) {
+    item.bg = "";
+    item.status = icon_normal;
+    if (item.delay > 60*60*1 && item.data_type==="update") {
+      // delay over 1 hour for updates files
+      item.bg = "bg-yellow-500/10";
+      item.status = icon_warn;
+    } else if (item.delay > 60*60*24 && item.data_type==="rib"){
+      // delay over 24 hour for RIB files
+      item.bg = "bg-yellow-500/10";
+      item.status = icon_warn;
+    }
+
+    if(["rrc02", "rrc08", "rrc09"].includes(item.collector_id)) {
+      item.bg = "bg-gray-500/10";
+      item.status = icon_deprecated
+    }
+  }
+
   return (
-  <div className="hidden mt-8 sm:block">
+  <div className="mt-8 sm:block">
     <div className="align-middle inline-block min-w-full border-b border-gray-200">
       <table className="min-w-full">
         <thead>
         <tr className="border-t border-gray-200">
           <th className="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            <span className="lg:pl-2">Collector</span>
+            Collector
+          </th>
+          <th className="px-1 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Status
           </th>
           <th className="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            <span className="lg:pl-2">Timestamp</span>
+            File Time UTC
           </th>
           <th className="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
             Data Type
@@ -54,15 +88,19 @@ function Latest() {
         </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-100">
-        {data.map((item) => (
-            <tr key={item.item_url}>
-              <td className="px-6 py-3 whitespace-nowrap text-sm font-normal text-gray-900">
+        { data.map((item) =>
+            (
+            <tr key={item.item_url} className={item.bg}>
+              <td className={"px-6 py-3 whitespace-nowrap text-sm font-normal text-gray-500"}>
                   <a href={item.collector_url} className="truncate hover:text-gray-600">
                         {item.collector_id}
                   </a>
               </td>
-              <td className="px-6 py-3 whitespace-nowrap text-sm font-normal text-gray-900">
-                  {item.timestamp}
+              <td className="px-1 py-3 whitespace-nowrap text-sm font-normal text-gray-500">
+                {item.status}
+              </td>
+              <td className="px-6 py-3 whitespace-nowrap text-sm font-normal text-gray-500">
+                  {item.timestamp.split("T").join(" ")}
               </td>
               <td className="px-6 py-3 text-sm text-gray-500 font-normal">
                 {item.data_type}
@@ -70,11 +108,11 @@ function Latest() {
               <td className="px-6 py-3 text-sm text-gray-500 font-normal">
                 {filesize(item.rough_size).human('si')}
               </td>
-              <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-sm text-gray-500 text-right">
-                {duration(item.delay, 'seconds').humanize()} ago
-              </td>
+                <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-sm text-gray-500 text-right">
+                  {duration(item.delay, 'seconds').humanize()} ago
+                </td>
               <td className="px-6 py-3 text-sm text-gray-500 font-normal">
-                <a href={item.item_url} className="text-indigo-600 hover:text-indigo-900">
+                <a href={item.item_url} className="text-indigo-600 hover:text-indigo-500">
                   Download
                 </a>
               </td>
@@ -94,157 +132,23 @@ export default function Example() {
           <div className="min-h-full">
 
             <SideBar page={"latest"}/>
+
           {/* Main column */}
           <div className="lg:pl-64 flex flex-col">
-            {/* Search header */}
-            <div className="sticky top-0 z-10 flex-shrink-0 flex h-16 bg-white border-b border-gray-200 lg:hidden">
-              <button
-                  type="button"
-                  className="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500 lg:hidden"
-                  onClick={() => setSidebarOpen(true)}
-              >
-                <span className="sr-only">Open sidebar</span>
-                <MenuAlt1Icon className="h-6 w-6" aria-hidden="true" />
-              </button>
-              <div className="flex-1 flex justify-between px-4 sm:px-6 lg:px-8">
-                <div className="flex-1 flex">
-                  <form className="w-full flex md:ml-0" action="#" method="GET">
-                    <label htmlFor="search-field" className="sr-only">
-                      Search
-                    </label>
-                    <div className="relative w-full text-gray-400 focus-within:text-gray-600">
-                      <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none">
-                        <SearchIcon className="h-5 w-5" aria-hidden="true" />
-                      </div>
-                      <input
-                          id="search-field"
-                          name="search-field"
-                          className="block w-full h-full pl-8 pr-3 py-2 border-transparent text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-0 focus:border-transparent focus:placeholder-gray-400 sm:text-sm"
-                          placeholder="Search"
-                          type="search"
-                      />
-                    </div>
-                  </form>
-                </div>
-                <div className="flex items-center">
-                  {/* Profile dropdown */}
-                  <Menu as="div" className="ml-3 relative">
-                    <div>
-                      <Menu.Button className="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
-                        <span className="sr-only">Open user menu</span>
-                        <img
-                            className="h-8 w-8 rounded-full"
-                            src="https://images.unsplash.com/photo-1502685104226-ee32379fefbe?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                            alt=""
-                        />
-                      </Menu.Button>
-                    </div>
-                    <Transition
-                        as={Fragment}
-                        enter="transition ease-out duration-100"
-                        enterFrom="transform opacity-0 scale-95"
-                        enterTo="transform opacity-100 scale-100"
-                        leave="transition ease-in duration-75"
-                        leaveFrom="transform opacity-100 scale-100"
-                        leaveTo="transform opacity-0 scale-95"
-                    >
-                      <Menu.Items className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 divide-y divide-gray-200 focus:outline-none">
-                        <div className="py-1">
-                          <Menu.Item>
-                            {({ active }) => (
-                                <a
-                                    href="#"
-                                    className={classNames(
-                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                        'block px-4 py-2 text-sm'
-                                    )}
-                                >
-                                  View profile
-                                </a>
-                            )}
-                          </Menu.Item>
-                          <Menu.Item>
-                            {({ active }) => (
-                                <a
-                                    href="#"
-                                    className={classNames(
-                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                        'block px-4 py-2 text-sm'
-                                    )}
-                                >
-                                  Settings
-                                </a>
-                            )}
-                          </Menu.Item>
-                          <Menu.Item>
-                            {({ active }) => (
-                                <a
-                                    href="#"
-                                    className={classNames(
-                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                        'block px-4 py-2 text-sm'
-                                    )}
-                                >
-                                  Notifications
-                                </a>
-                            )}
-                          </Menu.Item>
-                        </div>
-                        <div className="py-1">
-                          <Menu.Item>
-                            {({ active }) => (
-                                <a
-                                    href="#"
-                                    className={classNames(
-                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                        'block px-4 py-2 text-sm'
-                                    )}
-                                >
-                                  Get desktop app
-                                </a>
-                            )}
-                          </Menu.Item>
-                          <Menu.Item>
-                            {({ active }) => (
-                                <a
-                                    href="#"
-                                    className={classNames(
-                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                        'block px-4 py-2 text-sm'
-                                    )}
-                                >
-                                  Support
-                                </a>
-                            )}
-                          </Menu.Item>
-                        </div>
-                        <div className="py-1">
-                          <Menu.Item>
-                            {({ active }) => (
-                                <a
-                                    href="#"
-                                    className={classNames(
-                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                        'block px-4 py-2 text-sm'
-                                    )}
-                                >
-                                  Logout
-                                </a>
-                            )}
-                          </Menu.Item>
-                        </div>
-                      </Menu.Items>
-                    </Transition>
-                  </Menu>
-                </div>
-              </div>
+            <div className="flex items-center flex-shrink-0 px-6 py-6 ">
+              <img
+                  className="h-8 w-auto"
+                  src="https://spaces.bgpkit.org/assets/logos/icon-transparent.png"
+                  alt="BGPKIT"
+              />
+              <a href="https://github.com/bgpkit" target="_blank"> BGPKIT  Broker V2 Latest Data </a>
             </div>
             <main className="flex-1">
               {/* Page title & actions */}
               <div className="border-b border-gray-200 px-4 py-4 sm:flex sm:items-center sm:justify-between sm:px-6 lg:px-8">
                 <div className="flex-1 min-w-0">
-                  <p className="text-lg">
-                    Query URL: <a href="https://api.broker.bgpkit.com/v2/latest"> https://api.broker.bgpkit.com/v2/latest </a>
+                  <p className="text-sm">
+                    Data API: <a href="https://broker-latest.bgpkit.workers.dev/"> https://broker-latest.bgpkit.workers.dev/ </a>
                   </p>
                 </div>
               </div>
