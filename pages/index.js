@@ -1,4 +1,5 @@
-import {Fragment, useEffect, useState} from 'react'
+import React from "react";
+const { Fragment, useEffect, useState } = React;
 import { Menu, Transition } from '@headlessui/react'
 import { MenuAlt1Icon, ViewListIcon, XIcon, ExclamationIcon } from '@heroicons/react/outline'
 import { SearchIcon} from '@heroicons/react/solid'
