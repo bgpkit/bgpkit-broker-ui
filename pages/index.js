@@ -40,7 +40,7 @@ function Latest() {
     <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
   </svg>
 
-  for (let item of data) {
+  for (let item of data["latest"]) {
     item.bg = "";
     item.status = icon_normal;
     if (item.delay > 60*60*1 && item.data_type==="update") {
@@ -59,8 +59,16 @@ function Latest() {
     }
   }
 
+  let now = new Date();
+  let t = new Date(data["last_updated_at"]);
+  let diff = now - t;
+
   return (
-  <div className="mt-8 sm:block">
+  <div className="sm:block">
+    <div className="px-8 py-8">
+      Data last updated at {t.toISOString()} ({duration(diff/1000, 'seconds').humanize()} ago)
+    </div>
+
     <div className="align-middle inline-block min-w-full border-b border-gray-200">
       <table className="min-w-full">
         <thead>
@@ -89,7 +97,7 @@ function Latest() {
         </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-100">
-        { data.map((item) =>
+        { data["latest"].map((item) =>
             (
             <tr key={item.item_url} className={item.bg}>
               <td className={"px-6 py-3 whitespace-nowrap text-sm font-normal text-gray-500"}>
@@ -145,15 +153,6 @@ export default function Example() {
               <a href="https://github.com/bgpkit" target="_blank" rel="noreferrer"> BGPKIT  Broker V2 Latest Data </a>
             </div>
             <main className="flex-1">
-              {/* Page title & actions */}
-              <div className="border-b border-gray-200 px-4 py-4 sm:flex sm:items-center sm:justify-between sm:px-6 lg:px-8">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm">
-                    Data API: <a href="https://broker-latest.bgpkit.workers.dev/"> https://broker-latest.bgpkit.workers.dev/ </a>
-                  </p>
-                </div>
-              </div>
-
               <Latest/>
             </main>
           </div>
