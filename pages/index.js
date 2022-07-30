@@ -53,7 +53,7 @@ function Latest() {
       item.status = icon_warn;
     }
 
-    if(["rrc02", "rrc08", "rrc09"].includes(item.collector_id)) {
+    if(["rrc02", "rrc08", "rrc09", "route-views.jinx"].includes(item.collector_id)) {
       item.bg = "bg-gray-500/10";
       item.status = icon_deprecated
     }
