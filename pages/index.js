@@ -1,11 +1,15 @@
 import React from "react";
-const { Fragment, useEffect, useState } = React;
-import { Menu, Transition } from '@headlessui/react'
-import { MenuAlt1Icon, ViewListIcon, XIcon, ExclamationIcon } from '@heroicons/react/outline'
-import { SearchIcon} from '@heroicons/react/solid'
+const { useEffect, useState } = React;
 import {duration} from "moment";
 import filesize from "file-size"
 import SideBar from "./sidebar";
+
+const DEPRECATED_COLLECTORS = [
+  "rrc02",
+  "rrc08",
+  "rrc09",
+  "route-views.jinx"
+]
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ')
@@ -53,7 +57,7 @@ function Latest() {
       item.status = icon_warn;
     }
 
-    if(["rrc02", "rrc08", "rrc09", "route-views.jinx"].includes(item.collector_id)) {
+    if(DEPRECATED_COLLECTORS.includes(item.collector_id)) {
       item.bg = "bg-gray-500/10";
       item.status = icon_deprecated
     }
