@@ -1,5 +1,5 @@
-import {ViewListIcon} from "@heroicons/react/outline";
-import {CodeIcon} from "@heroicons/react/solid";
+import {CollectionIcon, ServerIcon} from "@heroicons/react/outline";
+// import {CodeIcon, ServerIcon} from "@heroicons/react/solid";
 
 function classNames(...classes) {
     return classes.filter(Boolean).join(' ')
@@ -7,16 +7,10 @@ function classNames(...classes) {
 export default function SideBar(props) {
     let navigation = [];
     navigation = [
-        { name: 'Latest', href: '#', target: "", icon: ViewListIcon, current: true },
-        { name: 'Broker Source Code', href: 'https://github.com/bgpkit/bgpkit-broker-backend', target: "_blank", icon: CodeIcon, current: false },
+        { name: 'MRT Files', href: 'mrt', target: "", icon: CollectionIcon, current: props.page==="mrt" },
+        { name: 'Full-feed Peers', href: 'full-peers', target: "", icon: ServerIcon, current: props.page==="full-peers" },
+        { name: 'All Peers', href: 'all-peers', target: "", icon: ServerIcon, current: props.page==="all-peers" },
     ]
-    if (props.page==="latest") {
-        navigation[0].current = true;
-        navigation[1].current = false;
-    } else {
-        navigation[0].current = false;
-        navigation[1].current = true;
-    }
     return (
         <>
             <div className="min-h-full">
