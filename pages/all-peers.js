@@ -42,22 +42,31 @@ function LatestPeers() {
 
     return (
         <div className="sm:block">
-            <div className="px-8 pt-8">
-                <a href="https://broker-latest.bgpkit.workers.dev/peers-all"
-                   target="_blank" rel="noreferrer"
-                   className="text-indigo-600 hover:text-indigo-500 underline"
-                > Raw JSON API </a>
-            </div>
-            <div className="px-8 pb-8">
-                <a href="https://data.bgpkit.com/peer-stats"
-                   target="_blank" rel="noreferrer"
-                   className="text-indigo-600 hover:text-indigo-500 underline"
-                > Historical Data Archive </a>
-            </div>
 
             <Stats stats={stats}></Stats>
 
-            <div className="align-middle inline-block min-w-full border-b border-gray-200">
+            <div className="px-8 align-middle inline-block min-w-full border-b border-gray-200">
+                <div className="container mx-auto mb-5">
+                    <button
+                        type="button"
+                        className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                        <a href="https://broker-latest.bgpkit.workers.dev/peers-all"
+                           target="_blank" rel="noreferrer"
+                            //className="text-indigo-600 hover:text-indigo-500 underline"
+                        > Raw JSON API </a>
+                    </button>
+                    <button
+                        type="button"
+                        className="mx-5 inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                        <a href="https://data.bgpkit.com/peer-stats"
+                           target="_blank" rel="noreferrer"
+                            // className="text-indigo-600 hover:text-indigo-500 underline"
+                        > Historical Data Archive </a>
+                    </button>
+                </div>
+
                 <table className="min-w-full">
                     <thead>
                     <tr className="border-t border-gray-200">
@@ -85,9 +94,9 @@ function LatestPeers() {
                     </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100">
-                    { data.map((item) =>
+                    { data.map((item, itemIdx) =>
                         (
-                            <tr key={item.item_url} className={item.bg}>
+                            <tr key={itemIdx} className={itemIdx % 2 === 0 ? undefined : 'bg-gray-50'}>
                                 <td className={"px-6 py-3 whitespace-nowrap text-sm font-normal text-gray-500"}>
                                     {item.date}
                                 </td>
