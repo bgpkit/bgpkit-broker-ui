@@ -8,7 +8,8 @@ const DEPRECATED_COLLECTORS = [
     "rrc02",
     "rrc08",
     "rrc09",
-    "route-views.jinx"
+    "route-views.jinx",
+    "route-views.saopaulo",
 ]
 
 function LatestMRT() {
