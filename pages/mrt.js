@@ -70,7 +70,7 @@ function LatestMRT() {
     return (
         <div className="sm:block">
             <div className="px-8 pt-8">
-                Data last updated at {t.toISOString()} ({duration(diff/1000, 'seconds').humanize()} ago), took {data.meta.latest_update_duration} seconds.
+                Data last updated at {t.toISOString()} ({duration(diff/1000, 'seconds').humanize()} ago), took {data.meta.latest_update_duration} seconds to finish.
             </div>
             <div className="px-8 py-8">
                     <a href="https://api.broker.bgpkit.com/v3/latest"
