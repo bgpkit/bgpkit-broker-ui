@@ -18,7 +18,7 @@ function LatestMRT() {
 
     useEffect(() => {
         setLoading(true)
-        fetch('https://broker-latest.bgpkit.workers.dev')
+        fetch('https://api.broker.bgpkit.com/v3/latest')
             .then((res) => res.json())
             .then((data) => {
                 setData(data)
@@ -41,7 +41,7 @@ function LatestMRT() {
         <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
     </svg>
 
-    let items = data['latest'].data;
+    let items = data.data;
     items = items.sort((a,b)=>{return a.collector_id > b.collector_id});
 
     for (let item of items) {
@@ -64,16 +64,16 @@ function LatestMRT() {
     }
 
     let now = new Date();
-    let t = new Date(data["last_updated_at"]);
+    let t = new Date(`${data.meta.latest_update_ts}Z`);
     let diff = now - t;
 
     return (
         <div className="sm:block">
             <div className="px-8 pt-8">
-                Data last updated at {t.toISOString()} ({duration(diff/1000, 'seconds').humanize()} ago)
+                Data last updated at {t.toISOString()} ({duration(diff/1000, 'seconds').humanize()} ago), took {data.meta.latest_update_duration} seconds.
             </div>
             <div className="px-8 py-8">
-                    <a href="https://broker-latest.bgpkit.workers.dev/mrt"
+                    <a href="https://api.broker.bgpkit.com/v3/latest"
                        target="_blank" rel="noreferrer"
                        className="text-indigo-600 hover:text-indigo-500 underline"
                     > Raw JSON Download </a>
@@ -119,7 +119,7 @@ function LatestMRT() {
                                     {item.status}
                                 </td>
                                 <td className="px-6 py-3 whitespace-nowrap text-sm font-normal text-gray-500">
-                                    {item.timestamp.split("T").join(" ")}
+                                    {item.timestamp? item.timestamp.split("T").join(" "): item.ts_start.split("T").join(" ")}
                                 </td>
                                 <td className="px-6 py-3 text-sm text-gray-500 font-normal">
                                     {item.data_type}
@@ -154,7 +154,7 @@ function MRTPage(){
                         src="https://spaces.bgpkit.org/assets/logos/icon-transparent.png"
                         alt="BGPKIT"
                     />
-                    <a href="https://github.com/bgpkit" target="_blank" rel="noreferrer"> BGPKIT  Broker V2 Latest Data </a>
+                    <a href="https://github.com/bgpkit" target="_blank" rel="noreferrer"> BGPKIT Broker V3 Latest Data </a>
                 </div>
                 <main className="flex-1">
                     <LatestMRT/>
