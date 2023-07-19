@@ -12,7 +12,9 @@
 		"rrc02",
 		"rrc08",
 		"rrc09",
+		"rrc19",
 		"route-views.jinx",
+		"route-views.siex",
 		"route-views.saopaulo",
 	]
 
@@ -33,18 +35,26 @@
 		return matchIndex >= 0 ? inputString.slice(0, matchIndex) : inputString;
 	}
 
+	// massage data for table display
+	let delayed = [];
+	let collectorsRv = new Set();
+	let collectorsRrc = new Set();
 	for(let entry of sourceData) {
+		entry.collector_id.startsWith("rrc")? collectorsRrc.add(entry.collector_id): collectorsRv.add(entry.collector_id);
 		const delay = (last_check_ts - new Date(`${entry.ts_start}Z`))/1000;
 		let variant = CHECKMARK_ICON;
-		if (delay > 60*60 && entry.data_type==="update") {
-			// delay over 1 hour for updates files
-			variant = WARNING_ICON;
-		} else if (delay > 60*60*24 && entry.data_type==="rib"){
-			// delay over 24 hour for RIB files
-			variant = WARNING_ICON;
-		}
 		if(DEPRECATED_COLLECTORS.includes(entry.collector_id)) {
 			variant = TRASH_ICON;
+		} else {
+			if (delay > 60*60 && entry.data_type==="update") {
+				// delay over 1 hour for updates files
+				variant = WARNING_ICON;
+				delayed.push(`${entry.collector_id}-updates`);
+			} else if (delay > 60*60*24 && entry.data_type==="rib"){
+				// delay over 24 hour for RIB files
+				variant = WARNING_ICON;
+				delayed.push(`${entry.collector_id}-rib`);
+			}
 		}
 
 		entry.collector_id =
@@ -55,6 +65,8 @@
 		entry.rough_size = filesize(entry.rough_size).human('si');
 		entry.delay = `${duration(delay, 'seconds').humanize()} ago`;
 	}
+
+	let ontimePercentage = ((sourceData.length - delayed.length) / sourceData.length * 100).toFixed(1);
 
 	const tableSimple = {
 		// A list of heading labels.
@@ -76,5 +88,28 @@
 			<h2 class="h3"> Last updated: {duration(diff/1000, 'seconds').humanize()} ago <span class="h6">({data.meta.latest_update_ts+'Z'})</span> </h2>
 		</div>
 	</div>
+
+	<div>
+		<dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
+			<div class="overflow-hidden rounded-lg bg-gray-100 px-4 py-5 shadow sm:p-6">
+				<dt class="truncate text-sm font-medium text-gray-500">Route Collectors</dt>
+				<dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{collectorsRv.size + collectorsRrc.size}</dd>
+				<dd class="mt-1 text-2xl tracking-tight text-gray-500 flex gap-4">
+					<div>
+						RouteViews: {collectorsRv.size}
+					</div>
+					<div>
+						RIPE RIS: {collectorsRrc.size}
+					</div>
+				</dd>
+			</div>
+			<div class="overflow-hidden rounded-lg bg-gray-100 px-4 py-5 shadow sm:p-6">
+				<dt class="truncate text-sm font-medium text-gray-500">Data Ontime Rate</dt>
+				<dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{ontimePercentage}%</dd>
+				<dd class="mt-1 text-2xl  tracking-tight text-gray-500">{delayed.join(" ")} delayed</dd>
+			</div>
+		</dl>
+	</div>
+
 	<Table source={tableSimple} />
 </div>
