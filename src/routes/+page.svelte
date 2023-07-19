@@ -84,7 +84,7 @@
 			<img class="h-20 mr-8 " src="https://spaces.bgpkit.org/assets/logos/icon-transparent.png" alt="bgpkit logo"/>
 		</a>
 		<div>
-			<h1 class="h1"> BGPKIT Broker Latest Data</h1>
+			<h1 class="h1"> BGPKIT Broker </h1>
 			<h2 class="h3"> Last updated: {duration(diff/1000, 'seconds').humanize()} ago <span class="h6">({data.meta.latest_update_ts+'Z'})</span> </h2>
 		</div>
 	</div>
