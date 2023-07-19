@@ -11,6 +11,6 @@
 <AppShell slotSidebarLeft="bg-gray-100">
     <slot />
     <!-- ---- / ---- -->
-    <svelte:fragment slot="pageFooter">Page Footer</svelte:fragment>
+<!--    <svelte:fragment slot="pageFooter">Page Footer</svelte:fragment>-->
     <!-- (footer) -->
 </AppShell>

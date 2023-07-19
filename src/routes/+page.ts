@@ -4,3 +4,4 @@ export async function load() {
     const data = await res.json();
     return data;
 }
+
