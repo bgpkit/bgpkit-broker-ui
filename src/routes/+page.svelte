@@ -78,13 +78,17 @@
 	};
 </script>
 
+<svelte:head>
+	<title> BGPKIT Broker Status </title>
+</svelte:head>
+
 <div class="container mx-auto p-8 space-y-8">
 	<div class="flex items-center">
 		<a href="https://bgpkit.com">
 			<img class="h-20 mr-8 " src="https://spaces.bgpkit.org/assets/logos/icon-transparent.png" alt="bgpkit logo"/>
 		</a>
 		<div>
-			<h1 class="h1"> BGPKIT Broker </h1>
+			<h1 class="h1"> BGPKIT Broker Status </h1>
 			<h2 class="h3"> Last updated: {duration(diff/1000, 'seconds').humanize()} ago <span class="h6">({data.meta.latest_update_ts+'Z'})</span> </h2>
 		</div>
 	</div>
@@ -106,7 +110,11 @@
 			<div class="overflow-hidden rounded-lg bg-gray-100 px-4 py-5 shadow sm:p-6">
 				<dt class="truncate text-sm font-medium text-gray-500">Data Ontime Rate</dt>
 				<dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{ontimePercentage}%</dd>
-				<dd class="mt-1 text-2xl  tracking-tight text-gray-500">{delayed.join(" ")} delayed</dd>
+				{#if (delayed.length>0)}
+					<dd class="mt-1 text-2xl  tracking-tight text-gray-500">{delayed.join(" ")} delayed</dd>
+				{:else}
+					<dd class="mt-1 text-2xl  tracking-tight text-gray-500"> All on time</dd>
+				{/if}
 			</div>
 		</dl>
 	</div>
