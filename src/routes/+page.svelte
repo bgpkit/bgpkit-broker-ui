@@ -12,7 +12,6 @@
 		"rrc02",
 		"rrc08",
 		"rrc09",
-		"rrc19",
 		"route-views.jinx",
 		"route-views.siex",
 		"route-views.saopaulo",
