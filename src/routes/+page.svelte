@@ -1,5 +1,5 @@
 <script>
-	import {Table, tableMapperValues} from '@skeletonlabs/skeleton';
+	import {LightSwitch, Table, tableMapperValues} from '@skeletonlabs/skeleton';
 	import {duration} from "moment/moment";
 	import filesize from "file-size";
 	export let data;
@@ -82,7 +82,7 @@
 </svelte:head>
 
 <div class="container mx-auto p-8 space-y-8">
-	<div class="flex items-center">
+	<div class="flex items-center float">
 		<a href="https://bgpkit.com">
 			<img class="h-20 mr-8 " src="https://spaces.bgpkit.org/assets/logos/icon-transparent.png" alt="bgpkit logo"/>
 		</a>
@@ -90,30 +90,34 @@
 			<h1 class="h1"> BGPKIT Broker Status </h1>
 			<h2 class="h3"> Last updated: {duration(diff/1000, 'seconds').humanize()} ago <span class="h6">({data.meta.latest_update_ts+'Z'})</span> </h2>
 		</div>
+		<div class="ml-auto">
+			<LightSwitch/>
+		</div>
 	</div>
 
 	<div>
-		<dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
-			<div class="overflow-hidden rounded-lg bg-gray-100 px-4 py-5 shadow sm:p-6">
-				<dt class="truncate text-sm font-medium text-gray-500">Route Collectors</dt>
-				<dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{collectorsRv.size + collectorsRrc.size}</dd>
-				<dd class="mt-1 text-2xl tracking-tight text-gray-500 flex gap-4">
+		<dl class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+			<div class="card p-6 rounded-lg shadow">
+				<header class="text-sm font-medium">Route Collectors</header>
+				<section class="text-3xl mt-3 font-semibold">{collectorsRv.size + collectorsRrc.size}</section>
+				<footer class="text-2xl mt-3 tracking-tight">
 					<div>
 						RouteViews: {collectorsRv.size}
-					</div>
-					<div>
 						RIPE RIS: {collectorsRrc.size}
 					</div>
-				</dd>
+				</footer>
 			</div>
-			<div class="overflow-hidden rounded-lg bg-gray-100 px-4 py-5 shadow sm:p-6">
-				<dt class="truncate text-sm font-medium text-gray-500">Data Ontime Rate</dt>
-				<dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{ontimePercentage}%</dd>
-				{#if (delayed.length>0)}
-					<dd class="mt-1 text-2xl  tracking-tight text-gray-500">{delayed.join(" ")} delayed</dd>
-				{:else}
-					<dd class="mt-1 text-2xl  tracking-tight text-gray-500"> All on time</dd>
-				{/if}
+
+			<div class="card p-6 rounded-lg shadow">
+				<header class="truncate text-sm font-medium">Data Ontime Rate</header>
+				<section>
+					<dd class="mt-1 text-3xl mt-3 font-semibold">{ontimePercentage}%</dd>
+					{#if (delayed.length>0)}
+						<dd class="mt-1 mt-3 text-2xl  tracking-tight">{delayed.join(" ")} delayed</dd>
+					{:else}
+						<dd class="mt-1 mt-3 text-2xl  tracking-tight"> All on time</dd>
+					{/if}
+				</section>
 			</div>
 		</dl>
 	</div>
