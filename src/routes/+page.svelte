@@ -20,8 +20,8 @@
 	// massage data format
 	const sourceData = data.data;
 	const now_ts = new Date();
-	const last_check_ts = new Date(`${data.meta.latest_update_ts}Z`);
-	let diff = now_ts - last_check_ts;
+	const last_check_ts = new Date();
+	// let diff = now_ts - last_check_ts;
 
 	function deleteAfterPattern(inputString) {
 		// Regular expression to match the pattern 'xxxx.xx' where x is a digit
@@ -88,7 +88,7 @@
 		</a>
 		<div>
 			<h1 class="h1"> BGPKIT Broker Status </h1>
-			<h2 class="h3"> Last updated: {duration(diff/1000, 'seconds').humanize()} ago <span class="h6">({data.meta.latest_update_ts+'Z'})</span> </h2>
+<!--			<h2 class="h3"> Last updated: {duration(diff/1000, 'seconds').humanize()} ago <span class="h6">({data.meta.latest_update_ts+'Z'})</span> </h2>-->
 		</div>
 		<div class="ml-auto">
 			<LightSwitch/>
