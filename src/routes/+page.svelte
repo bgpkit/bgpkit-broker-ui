@@ -67,7 +67,7 @@
 		if(DEPRECATED_COLLECTORS.includes(entry.collector_id)) {
 			variant = TRASH_ICON;
 		} else {
-			if (delay > 60*60 && entry.data_type==="update") {
+			if (delay > 60*60 && entry.data_type==="updates") {
 				// delay over 1 hour for updates files
 				variant = WARNING_ICON;
 				delayed.push(`${entry.collector_id}-updates`);
