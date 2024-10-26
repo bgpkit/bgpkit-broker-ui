@@ -35,8 +35,18 @@
                         <td>
                             {asn}
                         </td>
-                        <td>{num_v4_pfxs}</td>
-                        <td>{num_v6_pfxs}</td>
+                        <td>
+                            {#if num_v4_pfxs > 0}
+                                {num_v4_pfxs > 700_000 ? "✅" : " "}
+                            {/if}
+                            {num_v4_pfxs}
+                        </td>
+                        <td>
+                            {#if num_v6_pfxs > 0}
+                                {num_v6_pfxs > 100_000 ? "✅" : " "}
+                            {/if}
+                            {num_v6_pfxs}
+                        </td>
                         <td>{num_connected_asns}</td>
                         <td>
                             {num_v4_pfxs > 700_000 || num_v6_pfxs > 100_000
