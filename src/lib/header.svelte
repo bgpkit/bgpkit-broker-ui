@@ -17,9 +17,6 @@
             .toString()
             .padStart(2, "0");
         const timeZone = `${offsetSign}${offsetHours}:00`;
-
-        const dateTimeFormat = new Intl.DateTimeFormat("en-US");
-
         const year = now.getFullYear();
         const month = (now.getMonth() + 1).toString().padStart(2, "0");
         const day = now.getDate().toString().padStart(2, "0");
@@ -43,8 +40,8 @@
             />
         </a>
         <div>
-            <h1 class="text-3xl font-bold">BGPKIT Broker Status</h1>
-            <p>
+            <h1 class="text-4xl">BGPKIT Broker Status</h1>
+            <p class="text-xl">
                 Last updated: {duration(diff / 1000, "seconds").humanize()} ago (GMT
                 {last_updated_ts}Z) (Local {local_ts})
             </p>

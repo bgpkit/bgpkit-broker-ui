@@ -1,11 +1,5 @@
 <script lang="ts">
-    import { DEPRECATED_COLLECTORS, fileDelayed } from "$lib/common";
-    import type {
-        BrokerData,
-        BrokerDataEntry,
-        PeersData,
-        PeersDataEntry,
-    } from "$lib/types";
+    import type { PeersData, PeersDataEntry } from "$lib/types";
 
     let { peersData }: { peersData: PeersData } = $props();
 

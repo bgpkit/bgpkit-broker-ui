@@ -21,13 +21,13 @@
 		<span class="loading loading-dots loading-lg"></span>
 	{/if}
 
-	<div class="flex px-auto gap-8">
+	<div class="flex pt-8 px-auto gap-8">
 		<CollectorStats {brokerData} />
 		<OnTimeStats {brokerData} />
 		<PeersStats {peersData} />
 	</div>
 
-	<div role="tablist" class="tabs tabs-bordered tabs-lg py-10">
+	<div role="tablist" class="tabs tabs-bordered tabs-lg pt-8">
 		<input
 			type="radio"
 			name="tab"
