@@ -1,9 +1,18 @@
-<script lang='ts'>
-	// Most of your app wide CSS should be put in this file
-	import '../app.postcss';
-    import { AppShell } from '@skeletonlabs/skeleton';
+<script>
+    import "../app.css";
+    let { children } = $props();
 </script>
 
-<AppShell slotSidebarLeft="bg-gray-100">
-    <slot />
-</AppShell>
+<svelte:head>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+</svelte:head>
+
+
+<style>
+    :global(html) {
+      font-family: 'Roboto', sans-serif;
+    }
+</style>
+
+{@render children?.()}
+

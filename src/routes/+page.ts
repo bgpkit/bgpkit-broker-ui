@@ -1,9 +1,8 @@
-import type { BrokerData } from '../lib/types'; // Adjust the import path as needed
+import type { BrokerData, CombinedData } from '../lib/types'; // Adjust the import path as needed
 
 /** @type {import('./$types').PageLoad} */
-export async function load(): Promise<BrokerData> {
-    const res = await fetch("https://api.bgpkit.com/v3/broker/latest");
-    const data: BrokerData = await res.json();
-    return data;
+export async function load(): Promise<CombinedData> {
+    const brokerData: BrokerData = await (await fetch("https://api.bgpkit.com/v3/broker/latest")).json();
+    const peersData = await (await fetch("https://api.bgpkit.com/v3/peers/list")).json();
+    return { brokerData, peersData };
 }
-

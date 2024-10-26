@@ -19,3 +19,24 @@ export interface BrokerData {
         latest_update_duration: number;
     };
 }
+
+export interface PeersData {
+    count: number,
+    last_updated_at: string,
+    data: PeersDataEntry[];
+}
+
+export interface PeersDataEntry {
+    date: string;
+    collector: string;
+    ip: string;
+    asn: number;
+    num_v4_pfxs: number;
+    num_v6_pfxs: number;
+    num_connected_asns: number;
+}
+
+export interface CombinedData {
+    brokerData: BrokerData,
+    peersData: PeersData
+}
