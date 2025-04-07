@@ -3,7 +3,6 @@
 	import Header from "$lib/header.svelte";
 	import CollectorStats from "$lib/stats/collectorStats.svelte";
 	import OnTimeStats from "$lib/stats/onTimeStats.svelte";
-	import type { BrokerData, CombinedData } from "$lib/types";
 	import PeersTable from "$lib/tables/peersTable.svelte";
 	import PeersStats from "$lib/stats/peersStats.svelte";
 

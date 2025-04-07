@@ -1,5 +1,6 @@
 <script lang="ts">
-    import moment from "moment";
+    import moment from 'moment';
+
     const { duration } = moment;
 
     let { last_updated_ts }: { last_updated_ts: string } = $props();
@@ -24,9 +25,7 @@
         const minute = now.getMinutes().toString().padStart(2, "0");
         const second = now.getSeconds().toString().padStart(2, "0");
 
-        const dateTimeString = `${year}-${month}-${day}T${hour}:${minute}:${second}${timeZone}`;
-
-        return dateTimeString;
+        return `${year}-${month}-${day}T${hour}:${minute}:${second}${timeZone}`;
     }
 </script>
 
