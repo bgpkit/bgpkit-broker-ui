@@ -1,38 +1,79 @@
-# create-svelte
+# BGPKIT Broker Status Page
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
+This repository contains the front-end code for BGPKIT Broker database status for the collectors and peers.
 
-## Creating a project
+The current deployment is available at <https://status.broker.bgpkit.com>.
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Project Overview
 
-```bash
-# create a new project in the current directory
-npx sv create
+The BGPKIT Broker Status Page is a web application built with SvelteKit that provides real-time information about BGP route collectors and their peers. The application displays data regarding collector status, file availability, sizes, peers connectivity, and more.
 
-# create a new project in my-app
-npx sv create my-app
-```
+## Features
 
-## Developing
+- **Route Collectors Dashboard**: Displays a table of all BGP route collectors, showing:
+    - Collector ID with links to data sources
+    - Data type
+    - Status (active, delayed, or deprecated)
+    - File timestamps and update times
+    - File sizes
+    - Status indicators for latest data
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+- **Collector Peers Dashboard**: Shows information about all peers connected to collectors:
+    - Collector ID
+    - Peer IP addresses
+    - ASN information
+    - IPv4 and IPv6 prefix counts
+    - Connected ASN counts
+    - Full-feed status indicators
 
-```bash
-npm run dev
+- **Statistics Panels**: Provides quick overview metrics for:
+    - Collector statistics
+    - On-time updates statistics
+    - Peer connectivity metrics
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+## API Integration
 
-## Building
+The application fetches data from two main BGPKIT API endpoints:
+- `https://api.bgpkit.com/v3/broker/latest` - For route collector status
+- `https://api.bgpkit.com/v3/peers/list` - For information about collector peers
 
-To create a production version of your app:
+## Project Structure
 
-```bash
-npm run build
-```
+- `src/routes/`
+    - `+page.svelte` - Main page layout with tabbed interface
+    - `+page.ts` - Data loading logic
+    - `+layout.svelte` - App layout and global styles
 
-You can preview the production build with `npm run preview`.
+- `src/lib/`
+    - `tables/`
+        - `brokerTable.svelte` - Table component for collector data
+        - `peersTable.svelte` - Table component for peer data
+    - `stats/`
+        - `collectorStats.svelte` - Statistics about collectors
+        - `onTimeStats.svelte` - Statistics about on-time data
+        - `peersStats.svelte` - Statistics about peers
+    - `common.js` - Common utilities and constants
+    - `types.ts` - TypeScript type definitions
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## Getting Started
+
+### Installation
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+3. Build for production:
+   ```bash
+   npm run build
+   ```
+
+## Deployment
+
+The application can be deployed to Cloudflare Pages or any other hosting service that supports SvelteKit applications.

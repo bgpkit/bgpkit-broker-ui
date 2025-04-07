@@ -27,7 +27,7 @@
 		<PeersStats {peersData} />
 	</div>
 
-	<div role="tablist" class="tabs tabs-bordered tabs-lg pt-8">
+	<div role="tablist" class="tabs tabs-bordered tabs-lift tabs-lg pt-8">
 		<input
 			type="radio"
 			name="tab"
@@ -38,7 +38,7 @@
 		/>
 		<div
 			role="tabpanel"
-			class="tab-content bg-base-100 border-base-300 rounded-box p-6"
+			class="tab-content bg-base-100 border-base-300 p-6"
 		>
 			{#if brokerData}
 				<BrokerTable {brokerData} />

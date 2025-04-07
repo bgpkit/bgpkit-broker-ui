@@ -30,9 +30,21 @@
             <div class="stat-title">Date On-time Rate</div>
             <div class="stat-value">{(onTimeRate * 100).toFixed(1)}%</div>
             {#if delayed.length === 0}
-                <div class="stat-desc">All on time</div>
+                <div class="inline-flex items-center space-x-2">
+                    <div class="inline-grid *:[grid-area:1/1]">
+                        <div class="status status-success animate-ping"></div>
+                        <div class="status status-success"></div>
+                    </div>
+                    <div class="stat-desc">All on time</div>
+                </div>
             {:else}
-                <div class="stat-desc">Delayed: {delayed}</div>
+                <div class="inline-flex items-center space-x-2">
+                    <div class="inline-grid *:[grid-area:1/1]">
+                        <div class="status status-error animate-ping"></div>
+                        <div class="status status-error"></div>
+                    </div>
+                    <div class="stat-desc">Delayed: {delayed}</div>
+                </div>
             {/if}
         </div>
     {/if}

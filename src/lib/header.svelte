@@ -67,7 +67,7 @@
             </svg>
             <input
                 type="checkbox"
-                value="night"
+                value="dark"
                 class="toggle theme-controller"
             />
             <svg
