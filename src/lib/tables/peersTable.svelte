@@ -1,14 +1,26 @@
 <script lang="ts">
     import pkg from "moment/moment";
-    const { duration } = pkg;
     import type { PeersData, PeersDataEntry } from "../types";
-    import { DEPRECATED_COLLECTORS, fileDelayed } from "../common";
 
-    const { peersData }: { peersData: PeersData } = $props();
-    let entries: PeersDataEntry[] = $derived(peersData.data);
+    const { peersData, showOnlyFullFeed = false }: { peersData: PeersData, showOnlyFullFeed?: boolean } = $props();
+
+    let entries: PeersDataEntry[] = $state([]);
+
+    $effect(() => {
+        // This will re-run whenever showOnlyFullFeed or peersData changes
+        if (!peersData?.data) return;
+
+        if (showOnlyFullFeed) {
+            entries = peersData.data.filter(
+              entry => entry.num_v4_pfxs > 700_000 || entry.num_v6_pfxs > 100_000
+            );
+        } else {
+            entries = peersData.data;
+        }
+    });
 </script>
 
-{#if peersData == undefined}
+{#if peersData === undefined}
     <span class="loading loading-dots loading-lg"></span>
 {:else}
     <div class="overflow-x-auto">

@@ -11,6 +11,7 @@
 
 	let brokerData = $derived(data.brokerData);
 	let peersData = $derived(data.peersData);
+	let showOnlyFullFeed = $state(false);
 </script>
 
 <div class="container mx-auto my-10">
@@ -58,10 +59,17 @@
 			class="tab-content bg-base-100 border-base-300 rounded-box p-6"
 		>
 			{#if peersData}
-				<PeersTable {peersData} />
+				<div class="flex justify-end mb-4">
+					<label class="cursor-pointer label flex items-center gap-2">
+						<span class="label-text">Show only full-feed peers</span>
+						<input type="checkbox" bind:checked={showOnlyFullFeed} class="checkbox checkbox-primary" />
+					</label>
+				</div>
+				<PeersTable {peersData} showOnlyFullFeed={showOnlyFullFeed} />
 			{:else}
 				<span class="loading loading-dots loading-lg"></span>
 			{/if}
 		</div>
 	</div>
+
 </div>
