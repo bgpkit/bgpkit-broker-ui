@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PeersData, AsnInfo } from "../types";
-	import { calculateGreedyCoverage, countryToFlag, isRipeRis } from "../common";
+	import { calculateGreedyCoverage, calculateCoverageCurve, countryToFlag, isRipeRis } from "../common";
+	import CoverageChart from "./CoverageChart.svelte";
 
 	let {
 		peersData,
@@ -33,6 +34,20 @@
 			ipFamily,
 			project,
 			maxCollectors,
+		);
+	});
+
+	// Calculate coverage curve data for chart
+	let coverageCurveData = $derived.by(() => {
+		if (!peersData?.data || asnData.size === 0) {
+			return { labels: [], asnCounts: [], countryCounts: [] };
+		}
+		return calculateCoverageCurve(
+			peersData.data,
+			asnData,
+			ipFamily,
+			project,
+			Math.min(maxCollectors + 5, 25), // Show a bit more than current max for context
 		);
 	});
 
@@ -231,6 +246,15 @@
 				</div>
 				<div class="stat-desc">considered in optimization</div>
 			</div>
+		</div>
+
+		<!-- Coverage Chart -->
+		<div class="bg-base-200 p-4 rounded-lg">
+			<CoverageChart
+				labels={coverageCurveData.labels}
+				asnData={coverageCurveData.asnCounts}
+				countryData={coverageCurveData.countryCounts}
+			/>
 		</div>
 
 		<!-- Selected Collectors Table -->

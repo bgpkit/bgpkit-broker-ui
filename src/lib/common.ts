@@ -782,3 +782,54 @@ export function calculateGreedyCoverage(
           collectorDetails,
      };
 }
+
+// Calculate coverage curve data for chart visualization
+// Returns data points for different max collector values
+export function calculateCoverageCurve(
+     peersData: PeersDataEntry[],
+     asnInfoMap: Map<number, AsnInfo>,
+     ipFamily: "all" | "ipv4" | "ipv6",
+     project: "any" | "rv" | "ris" | "balanced" = "any",
+     maxCollectors: number = 20,
+): {
+     labels: number[];
+     asnCounts: number[];
+     countryCounts: number[];
+} {
+     const labels: number[] = [];
+     const asnCounts: number[] = [];
+     const countryCounts: number[] = [];
+
+     for (let i = 1; i <= maxCollectors; i++) {
+          const result = calculateGreedyCoverage(
+               peersData,
+               asnInfoMap,
+               "asns", // Calculate both regardless of goal
+               ipFamily,
+               project,
+               i,
+          );
+
+          // Count actual unique ASNs and countries from selected collectors
+          const selectedAsns = new Set<number>();
+          const selectedCountries = new Set<string>();
+
+          for (const collector of result.selectedCollectors) {
+               const details = result.collectorDetails.get(collector);
+               if (details) {
+                    for (const asn of details.uniqueAsns) {
+                         selectedAsns.add(asn);
+                    }
+                    for (const country of details.uniqueCountries) {
+                         selectedCountries.add(country);
+                    }
+               }
+          }
+
+          labels.push(i);
+          asnCounts.push(selectedAsns.size);
+          countryCounts.push(selectedCountries.size);
+     }
+
+     return { labels, asnCounts, countryCounts };
+}

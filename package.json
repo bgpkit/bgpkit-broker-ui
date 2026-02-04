@@ -24,6 +24,7 @@
 	},
 	"dependencies": {
 		"@sveltejs/adapter-cloudflare": "^4.7.3",
+		"chart.js": "^4.5.1",
 		"file-size": "^1.0.0",
 		"moment": "^2.30.1"
 	}
