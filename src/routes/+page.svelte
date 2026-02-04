@@ -207,7 +207,7 @@
             class="tab"
             checked={activeTab === 0}
             aria-label="Route Collectors"
-            onchange={() => handleTabChange(0)}
+            onclick={() => handleTabChange(0)}
         />
         <div
             role="tabpanel"
@@ -236,7 +236,7 @@
             class="tab"
             checked={activeTab === 1}
             aria-label="Collector Peers"
-            onchange={() => handleTabChange(1)}
+            onclick={() => handleTabChange(1)}
         />
         <div
             role="tabpanel"
@@ -265,7 +265,7 @@
             class="tab"
             checked={activeTab === 2}
             aria-label="Collector Selector"
-            onchange={() => handleTabChange(2)}
+            onclick={() => handleTabChange(2)}
         />
         <div
             role="tabpanel"

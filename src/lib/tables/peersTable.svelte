@@ -317,6 +317,14 @@
     function closeCollectorModal() {
         collectorModalOpen = false;
         selectedCollector = null;
+        // Clear URL param
+        if (typeof window !== "undefined") {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has("collectorModal")) {
+                url.searchParams.delete("collectorModal");
+                replaceState(url, {});
+            }
+        }
     }
 
     function handleNavigateToPeersFromCollector(collector: string) {
@@ -333,6 +341,14 @@
     function closeCountryModal() {
         countryModalOpen = false;
         selectedCountry = null;
+        // Clear URL param
+        if (typeof window !== "undefined") {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has("countryModal")) {
+                url.searchParams.delete("countryModal");
+                replaceState(url, {});
+            }
+        }
     }
 
     function handleNavigateToPeersFromCountry(country: string) {
@@ -354,6 +370,14 @@
     function closeAsnModal() {
         asnModalOpen = false;
         selectedAsn = null;
+        // Clear URL param
+        if (typeof window !== "undefined") {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has("asnModal")) {
+                url.searchParams.delete("asnModal");
+                replaceState(url, {});
+            }
+        }
     }
 
     function handleNavigateToPeersFromAsn(asn: number) {
