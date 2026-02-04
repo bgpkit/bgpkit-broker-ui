@@ -261,15 +261,13 @@
 				<input
 					type="text"
 					class="input input-bordered flex-1 font-mono text-sm"
-					value={result.selectedCollectors.join(",")}
+					value={collectorsStr}
 					readonly
 				/>
 				<button
 					class="btn btn-primary btn-sm"
 					onclick={() => {
-						navigator.clipboard.writeText(
-							result.selectedCollectors.join(","),
-						);
+						navigator.clipboard.writeText(collectorsStr);
 					}}
 				>
 					Copy
