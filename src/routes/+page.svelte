@@ -6,8 +6,10 @@
     import PeersTable from "$lib/tables/peersTable.svelte";
     import PeersStats from "$lib/stats/peersStats.svelte";
     import CountryStats from "$lib/stats/countryStats.svelte";
-    import type { AsnInfo, AsnApiResponse } from "$lib/types";
+    import type { AsnInfo } from "$lib/types";
+    import { fetchAsnInfoBatch } from "$lib/common";
     import { browser } from "$app/environment";
+    import { replaceState } from "$app/navigation";
 
     /** @type {import('./$types').PageData} */
     let { data } = $props();
@@ -75,7 +77,7 @@
             url.searchParams.set("tab", "peers");
             url.searchParams.set("collector", collector);
             url.searchParams.delete("country");
-            window.history.replaceState({}, "", url.toString());
+            replaceState(url, {});
         }
     }
 
@@ -91,61 +93,31 @@
             url.searchParams.set("tab", "peers");
             url.searchParams.delete("collector");
             url.searchParams.set("country", country);
-            window.history.replaceState({}, "", url.toString());
+            replaceState(url, {});
         }
     }
 
-    // Load ASN data using bulk API with comma-separated ASNs
+    // Load ASN data using optimized bulk API with POST endpoint
     $effect(() => {
         if (!peersData?.data) return;
 
+        const loadStartTime = performance.now();
         const uniqueAsns = [...new Set(peersData.data.map((p) => p.asn))];
+        console.log(`[Page] Starting ASN load for ${uniqueAsns.length} unique ASNs...`);
         asnLoadProgress = { loaded: 0, total: uniqueAsns.length };
 
-        // Load ASNs in bulk batches (API supports comma-separated ASNs)
-        const batchSize = 50; // Larger batch size since we're using bulk API
-        let loadedCount = 0;
-
-        async function loadBatch(startIndex: number) {
-            const batch = uniqueAsns.slice(startIndex, startIndex + batchSize);
-            if (batch.length === 0) {
-                asnLoading = false;
-                return;
-            }
-
-            try {
-                // Use bulk API with comma-separated ASNs
-                const asnList = batch.join(",");
-                const response = await fetch(
-                    `https://api.bgpkit.com/v3/utils/asn?asn=${asnList}`,
-                );
-
-                if (response.ok) {
-                    const data: AsnApiResponse = await response.json();
-                    if (data.data && data.data.length > 0) {
-                        const newMap = new Map(asnData);
-                        data.data.forEach((info) => {
-                            newMap.set(info.asn, info);
-                        });
-                        asnData = newMap;
-                    }
-                }
-            } catch (error) {
-                console.error("Failed to fetch ASN batch:", error);
-            }
-
-            loadedCount += batch.length;
-            asnLoadProgress = { loaded: loadedCount, total: uniqueAsns.length };
-
-            // Continue loading next batch with a small delay
-            if (startIndex + batchSize < uniqueAsns.length) {
-                setTimeout(() => loadBatch(startIndex + batchSize), 50);
-            } else {
-                asnLoading = false;
-            }
-        }
-
-        loadBatch(0);
+        // Use optimized batch fetch with POST endpoint
+        fetchAsnInfoBatch(uniqueAsns, (loaded, total) => {
+            asnLoadProgress = { loaded, total };
+        }).then((results) => {
+            asnData = results;
+            asnLoading = false;
+            const duration = performance.now() - loadStartTime;
+            console.log(`[Page] ASN loading complete: ${results.size} ASNs in ${duration.toFixed(1)}ms`);
+        }).catch((error) => {
+            console.error("[Page] Failed to load ASN data:", error);
+            asnLoading = false;
+        });
     });
 
     function handleTabChange(tabIndex: number) {
@@ -183,7 +155,7 @@
                 url.searchParams.delete("collectorModal");
             }
 
-            window.history.replaceState({}, "", url.toString());
+            replaceState(url, {});
         }
     }
 </script>

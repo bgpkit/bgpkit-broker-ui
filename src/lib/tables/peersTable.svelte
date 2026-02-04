@@ -10,6 +10,7 @@
         CollectorSummary,
         CountrySummary,
     } from "../types";
+    import { replaceState } from "$app/navigation";
     import {
         filterPeersData,
         sortPeersData,
@@ -209,7 +210,7 @@
         }
 
         if (changed) {
-            window.history.replaceState({}, "", url.toString());
+            replaceState(url, {});
         }
     });
 
@@ -369,6 +370,49 @@
         closeAsnModal();
         openCountryModal(countryCode);
     }
+
+    // Virtual scrolling state
+    const ROW_HEIGHT = 48; // Approximate row height in pixels
+    const BUFFER_ROWS = 10; // Number of rows to render above/below visible area
+    let scrollContainer: HTMLElement | null = $state(null);
+    let scrollTop = $state(0);
+    let containerHeight = $state(0);
+
+    // Calculate visible row range
+    let visibleRange = $derived.by(() => {
+        const startIdx = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_ROWS);
+        const visibleCount = Math.ceil(containerHeight / ROW_HEIGHT) + BUFFER_ROWS * 2;
+        const endIdx = Math.min(sortedEntries.length, startIdx + visibleCount);
+        return { start: startIdx, end: endIdx };
+    });
+
+    // Only render rows in visible range
+    let visibleEntries = $derived(
+        sortedEntries.slice(visibleRange.start, visibleRange.end)
+    );
+
+    // Total height for scroll area
+    let totalHeight = $derived(sortedEntries.length * ROW_HEIGHT);
+    let offsetY = $derived(visibleRange.start * ROW_HEIGHT);
+
+    function handleScroll(event: Event) {
+        const target = event.target as HTMLElement;
+        scrollTop = target.scrollTop;
+    }
+
+    function updateContainerHeight() {
+        if (scrollContainer) {
+            containerHeight = scrollContainer.clientHeight;
+        }
+    }
+
+    // Initialize container height on mount
+    $effect(() => {
+        if (!isActive) return;
+        updateContainerHeight();
+        window.addEventListener('resize', updateContainerHeight);
+        return () => window.removeEventListener('resize', updateContainerHeight);
+    });
 </script>
 
 {#if peersData === undefined}
@@ -389,9 +433,13 @@
         filteredCount={filteredEntries.length}
     />
 
-    <div class="overflow-auto max-h-[70vh]">
+    <div
+        bind:this={scrollContainer}
+        class="overflow-auto max-h-[70vh]"
+        onscroll={handleScroll}
+    >
         <table
-            class="table table-bordered border-collapse border border-base-300"
+            class="table table-fixed table-bordered border-collapse border border-base-300 w-full"
         >
             <thead class="sticky top-0 z-10">
                 <tr class="border-b-2 border-base-300">
@@ -402,40 +450,40 @@
                         Collector{getSortIndicator("collector")}
                     </th>
                     <th
-                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300"
+                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300 w-40"
                         onclick={() => handleSort("ip")}
                     >
                         IP{getSortIndicator("ip")}
                     </th>
                     <th
-                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300"
+                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300 w-48"
                         onclick={() => handleSort("asn")}
                     >
                         ASN{getSortIndicator("asn")}
                     </th>
-                    <th class="bg-base-200 border border-base-300"
+                    <th class="bg-base-200 border border-base-300 w-32"
                         >Country/Region</th
                     >
                     <th
-                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300"
+                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300 w-32"
                         onclick={() => handleSort("num_v4_pfxs")}
                     >
                         IPv4 Prefixes{getSortIndicator("num_v4_pfxs")}
                     </th>
                     <th
-                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300"
+                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300 w-32"
                         onclick={() => handleSort("num_v6_pfxs")}
                     >
                         IPv6 Prefixes{getSortIndicator("num_v6_pfxs")}
                     </th>
                     <th
-                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300"
+                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300 w-32"
                         onclick={() => handleSort("num_connected_asns")}
                     >
                         Connected ASNs{getSortIndicator("num_connected_asns")}
                     </th>
                     <th
-                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300"
+                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300 w-24"
                         onclick={() => handleSort("fullFeed")}
                     >
                         Full-feed?{getSortIndicator("fullFeed")}
@@ -443,7 +491,13 @@
                 </tr>
             </thead>
             <tbody>
-                {#each sortedEntries as { collector, ip, asn, num_v4_pfxs, num_v6_pfxs, num_connected_asns }}
+                <!-- Spacer for virtual scrolling -->
+                {#if visibleRange.start > 0}
+                    <tr style="height: {offsetY}px;">
+                        <td colspan="8" style="padding: 0; border: none;"></td>
+                    </tr>
+                {/if}
+                {#each visibleEntries as { collector, ip, asn, num_v4_pfxs, num_v6_pfxs, num_connected_asns }, i (visibleRange.start + i)}
                     {@const country = getCountryBadge(asn)}
                     {@const peerIsFullFeed = isFullFeed({
                         collector,
@@ -455,7 +509,7 @@
                         date: "",
                     })}
                     <tr class="hover:bg-base-200">
-                        <td class="bg-base-100 border border-base-300 w-36">
+                        <td class="bg-base-100 border border-base-300 w-36 overflow-hidden">
                             <button
                                 class="font-mono text-sm link link-hover flex items-center gap-1"
                                 onclick={() => openCollectorModal(collector)}
@@ -478,17 +532,22 @@
                                 </svg>
                             </button>
                         </td>
-                        <td class="border border-base-300">
+                        <td class="border border-base-300 w-40 overflow-hidden">
                             <span class="font-mono text-sm">{ip}</span>
                         </td>
-                        <td class="border border-base-300">
-                            <AsnTooltip
-                                {asn}
-                                asnInfo={asnData.get(asn)}
-                                onClick={openAsnModal}
-                            />
+                        <td class="border border-base-300 w-48 overflow-hidden">
+                            <div class="flex items-center gap-1">
+                                <AsnTooltip
+                                    {asn}
+                                    asnInfo={asnData.get(asn)}
+                                    onClick={openAsnModal}
+                                />
+                                <span class="text-xs text-base-content/60 truncate">
+                                    {asnData.get(asn)?.name || ''}
+                                </span>
+                            </div>
                         </td>
-                        <td class="border border-base-300">
+                        <td class="border border-base-300 w-32 overflow-hidden">
                             {#if country}
                                 <button
                                     class="badge badge-sm badge-outline gap-1 cursor-pointer hover:bg-base-200"
@@ -505,7 +564,7 @@
                                 <span class="text-base-content/40">--</span>
                             {/if}
                         </td>
-                        <td class="border border-base-300">
+                        <td class="border border-base-300 w-32 overflow-hidden">
                             <span class="flex items-center gap-1">
                                 {#if num_v4_pfxs > 0 && num_v4_pfxs > 700_000}
                                     <span title="Full IPv4 table">✅</span>
@@ -519,7 +578,7 @@
                                 </span>
                             </span>
                         </td>
-                        <td class="border border-base-300">
+                        <td class="border border-base-300 w-32 overflow-hidden">
                             <span class="flex items-center gap-1">
                                 {#if num_v6_pfxs > 0 && num_v6_pfxs > 100_000}
                                     <span title="Full IPv6 table">✅</span>
@@ -533,10 +592,10 @@
                                 </span>
                             </span>
                         </td>
-                        <td class="border border-base-300"
+                        <td class="border border-base-300 w-32 overflow-hidden"
                             >{num_connected_asns.toLocaleString()}</td
                         >
-                        <td class="border border-base-300">
+                        <td class="border border-base-300 w-24 overflow-hidden">
                             {#if peerIsFullFeed}
                                 <span class="badge badge-success badge-sm"
                                     >Yes</span
@@ -549,6 +608,12 @@
                         </td>
                     </tr>
                 {/each}
+                <!-- Spacer for virtual scrolling -->
+                {#if visibleRange.end < sortedEntries.length}
+                    <tr style="height: {(sortedEntries.length - visibleRange.end) * ROW_HEIGHT}px;">
+                        <td colspan="8" style="padding: 0; border: none;"></td>
+                    </tr>
+                {/if}
             </tbody>
         </table>
     </div>

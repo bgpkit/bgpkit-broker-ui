@@ -120,7 +120,7 @@
                 type="text"
                 placeholder={type === "broker"
                     ? "Search collector..."
-                    : "Search collector, ASN, or IP..."}
+                    : "Search collector, ASN (exact), IP, or org name..."}
                 value={searchInput}
                 oninput={handleSearchInput}
                 class="input input-bordered w-full"
