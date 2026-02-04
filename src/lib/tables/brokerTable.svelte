@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { replaceState } from "$app/navigation";
     import filesize from "file-size";
     import pkg from "moment/moment";
     const { duration } = pkg;
@@ -285,7 +284,7 @@
         }
 
         if (changed) {
-            replaceState(url, {});
+            window.history.replaceState({}, "", url.toString());
         }
     });
 
@@ -303,7 +302,7 @@
             const url = new URL(window.location.href);
             if (url.searchParams.has("collectorModal")) {
                 url.searchParams.delete("collectorModal");
-                replaceState(url, {});
+                window.history.replaceState({}, "", url.toString());
             }
         }
     }
@@ -327,7 +326,7 @@
             const url = new URL(window.location.href);
             if (url.searchParams.has("countryModal")) {
                 url.searchParams.delete("countryModal");
-                replaceState(url, {});
+                window.history.replaceState({}, "", url.toString());
             }
         }
     }

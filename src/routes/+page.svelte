@@ -10,7 +10,6 @@
     import type { AsnInfo } from "$lib/types";
     import { fetchAsnInfoBatch } from "$lib/common";
     import { browser } from "$app/environment";
-    import { replaceState } from "$app/navigation";
 
     /** @type {import('./$types').PageData} */
     let { data } = $props();
@@ -80,7 +79,7 @@
             url.searchParams.set("tab", "peers");
             url.searchParams.set("collector", collector);
             url.searchParams.delete("country");
-            replaceState(url, {});
+            window.history.replaceState({}, "", url.toString());
         }
     }
 
@@ -96,7 +95,7 @@
             url.searchParams.set("tab", "peers");
             url.searchParams.delete("collector");
             url.searchParams.set("country", country);
-            replaceState(url, {});
+            window.history.replaceState({}, "", url.toString());
         }
     }
 
@@ -178,7 +177,7 @@
                 url.searchParams.delete("collectorModal");
             }
 
-            replaceState(url, {});
+            window.history.replaceState({}, "", url.toString());
         }
     }
 </script>
