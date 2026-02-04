@@ -46,6 +46,57 @@
         tabInitialized = true;
     });
 
+    // Update URL and cleanup when tab changes
+    $effect(() => {
+        if (!browser || !tabInitialized) return;
+        
+        const url = new URL(window.location.href);
+        const currentTab = url.searchParams.get("tab");
+        let newTab = "collectors";
+        
+        if (activeTab === 1) {
+            newTab = "peers";
+            // Clear collector-specific filters when switching to peers tab
+            url.searchParams.delete("search");
+            url.searchParams.delete("dataType");
+            url.searchParams.delete("status");
+            url.searchParams.delete("showDeprecated");
+            url.searchParams.delete("collectorModal");
+        } else if (activeTab === 2) {
+            newTab = "selector";
+            // Clear all filters when switching to selector tab
+            peersCollectorFilter = null;
+            peersCountryFilter = null;
+            url.searchParams.delete("collector");
+            url.searchParams.delete("country");
+            url.searchParams.delete("project");
+            url.searchParams.delete("ip");
+            url.searchParams.delete("feed");
+            url.searchParams.delete("q");
+            url.searchParams.delete("search");
+            url.searchParams.delete("dataType");
+            url.searchParams.delete("status");
+            url.searchParams.delete("showDeprecated");
+            url.searchParams.delete("asnModal");
+            url.searchParams.delete("countryModal");
+            url.searchParams.delete("collectorModal");
+        } else {
+            // Clear peers-specific filters when switching to collectors tab
+            url.searchParams.delete("country");
+            url.searchParams.delete("project");
+            url.searchParams.delete("ip");
+            url.searchParams.delete("feed");
+            url.searchParams.delete("q");
+            url.searchParams.delete("collector");
+            url.searchParams.delete("asnModal");
+        }
+        
+        if (currentTab !== newTab) {
+            url.searchParams.set("tab", newTab);
+            window.history.replaceState({}, "", url.toString());
+        }
+    });
+
     // Collector filter for peers tab (set when navigating from collector modal)
     let peersCollectorFilter = $state<string | null>(null);
     let peersCountryFilter = $state<string | null>(null);
@@ -204,9 +255,9 @@
             name="tab"
             role="tab"
             class="tab"
-            checked={activeTab === 0}
+            bind:group={activeTab}
+            value={0}
             aria-label="Route Collectors"
-            onclick={() => handleTabChange(0)}
         />
         <div
             role="tabpanel"
@@ -233,9 +284,9 @@
             name="tab"
             role="tab"
             class="tab"
-            checked={activeTab === 1}
+            bind:group={activeTab}
+            value={1}
             aria-label="Collector Peers"
-            onclick={() => handleTabChange(1)}
         />
         <div
             role="tabpanel"
@@ -262,9 +313,9 @@
             name="tab"
             role="tab"
             class="tab"
-            checked={activeTab === 2}
+            bind:group={activeTab}
+            value={2}
             aria-label="Collector Selector"
-            onclick={() => handleTabChange(2)}
         />
         <div
             role="tabpanel"

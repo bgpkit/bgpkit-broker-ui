@@ -18,6 +18,9 @@
 	let project = $state<"any" | "rv" | "ris" | "balanced">("any");
 	let maxCollectors = $state(10);
 
+	// Modal state
+	let showAllAsnsModal = $state(false);
+
 	// Calculate coverage when inputs change
 	let result = $derived.by(() => {
 		if (!peersData?.data || asnData.size === 0) {
@@ -31,6 +34,44 @@
 			project,
 			maxCollectors,
 		);
+	});
+
+	// Calculate all covered ASNs and countries from selected collectors
+	let coveredData = $derived.by(() => {
+		if (!result) {
+			return { asns: new Set<number>(), countries: new Set<string>() };
+		}
+
+		const allAsns = new Set<number>();
+		const allCountries = new Set<string>();
+
+		for (const step of result.coverageByStep) {
+			const details = result.collectorDetails.get(step.collector);
+			if (details) {
+				for (const asn of details.uniqueAsns) {
+					allAsns.add(asn);
+				}
+				for (const country of details.uniqueCountries) {
+					allCountries.add(country);
+				}
+			}
+		}
+
+		return { asns: allAsns, countries: allCountries };
+	});
+
+	// Get all covered ASNs with their country info for the modal
+	let coveredAsnsWithCountries = $derived.by(() => {
+		const asns = [...coveredData.asns].sort((a, b) => a - b);
+		return asns.map(asn => {
+			const info = asnData.get(asn);
+			return {
+				asn,
+				name: info?.name || 'Unknown',
+				country: info?.country || '',
+				countryName: info?.country_name || '',
+			};
+		});
 	});
 
 	// Total counts for reference
@@ -66,13 +107,15 @@
 		};
 	});
 
-	// Coverage percentage
-	let coveragePercent = $derived.by(() => {
-		if (!result) return 0;
-		const total =
-			goal === "asns" ? totalStats.totalAsns : totalStats.totalCountries;
-		if (total === 0) return 0;
-		return Math.round((result.totalCoverage / total) * 100);
+	// Coverage percentages for both metrics
+	let asnCoveragePercent = $derived.by(() => {
+		if (!result || totalStats.totalAsns === 0) return 0;
+		return Math.round((coveredData.asns.size / totalStats.totalAsns) * 100);
+	});
+
+	let countryCoveragePercent = $derived.by(() => {
+		if (!result || totalStats.totalCountries === 0) return 0;
+		return Math.round((coveredData.countries.size / totalStats.totalCountries) * 100);
 	});
 
 	// Usage examples
@@ -162,15 +205,19 @@
 				<div class="stat-desc">of {result.collectorDetails.size} available</div>
 			</div>
 
-			<div class="stat">
-				<div class="stat-title">
-					{goal === "asns" ? "ASNs Covered" : "Countries Covered"}
-				</div>
-				<div class="stat-value text-2xl">{result.totalCoverage}</div>
+			<div class="stat {goal === 'asns' ? 'bg-base-300 rounded-lg' : ''}">
+				<div class="stat-title">ASNs Covered</div>
+				<div class="stat-value text-2xl">{coveredData.asns.size}</div>
 				<div class="stat-desc">
-					{coveragePercent}% of
-					{goal === "asns" ? totalStats.totalAsns : totalStats.totalCountries}
-					total
+					{asnCoveragePercent}% of {totalStats.totalAsns} total
+				</div>
+			</div>
+
+			<div class="stat {goal === 'countries' ? 'bg-base-300 rounded-lg' : ''}">
+				<div class="stat-title">Countries Covered</div>
+				<div class="stat-value text-2xl">{coveredData.countries.size}</div>
+				<div class="stat-desc">
+					{countryCoveragePercent}% of {totalStats.totalCountries} total
 				</div>
 			</div>
 
@@ -196,11 +243,8 @@
 						<th class="text-right">New Coverage</th>
 						<th class="text-right">Cumulative</th>
 						<th class="text-right">Full-feed Peers</th>
-						<th>
-							Top ASNs
-							<span class="text-xs text-base-content/50" title="Sorted by total IPv4 prefixes advertised">(?)</span>
-						</th>
-						<th>Top Countries</th>
+						<th class="text-right">ASNs</th>
+						<th class="text-right">Countries</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -214,45 +258,89 @@
 							<td class="text-right font-mono">
 								{details?.fullFeedPeers.length || 0}
 							</td>
-							<td>
-								{#if details}
-									{@const topAsns = [...details.uniqueAsns]
-										.sort((a, b) => {
-											const peerA = details.fullFeedPeers.find((p) => p.asn === a);
-											const peerB = details.fullFeedPeers.find((p) => p.asn === b);
-											// Sort by total prefixes (IPv4 + IPv6) advertised
-											const prefixesA = (peerA?.num_v4_pfxs || 0) + (peerA?.num_v6_pfxs || 0);
-											const prefixesB = (peerB?.num_v4_pfxs || 0) + (peerB?.num_v6_pfxs || 0);
-											return prefixesB - prefixesA;
-										})
-										.slice(0, 3)}
-									<div class="flex flex-wrap gap-1">
-										{#each topAsns as asn}
-											<span class="badge badge-sm badge-outline"
-												>AS{asn}</span
-											>
-										{/each}
-									</div>
-								{/if}
+							<td class="text-right font-mono">
+								{details?.uniqueAsns.size || 0}
 							</td>
-							<td>
-								{#if details}
-									{@const topCountries = [...details.uniqueCountries].slice(0, 3)}
-									<div class="flex flex-wrap gap-1">
-										{#each topCountries as country}
-											<span class="badge badge-sm badge-outline gap-1">
-												{countryToFlag(country)}
-												{country}
-											</span>
-										{/each}
-									</div>
-								{/if}
+							<td class="text-right font-mono">
+								{details?.uniqueCountries.size || 0}
 							</td>
 						</tr>
 					{/each}
 				</tbody>
 			</table>
 		</div>
+
+		<!-- View All ASNs Button -->
+		<div class="flex justify-center">
+			<button 
+				class="btn btn-outline btn-primary"
+				onclick={() => showAllAsnsModal = true}
+			>
+				View All Covered ASNs ({coveredData.asns.size})
+			</button>
+		</div>
+
+		<!-- All ASNs Modal -->
+		{#if showAllAsnsModal}
+			<div class="modal modal-open">
+				<div class="modal-box max-w-4xl max-h-[80vh] flex flex-col">
+					<div class="flex justify-between items-center mb-4">
+						<h3 class="text-lg font-bold">Covered ASNs ({coveredAsnsWithCountries.length})</h3>
+						<button 
+							class="btn btn-sm btn-ghost"
+							onclick={() => showAllAsnsModal = false}
+						>
+							✕
+						</button>
+					</div>
+					
+					<div class="overflow-auto flex-1">
+						<table class="table table-sm table-zebra">
+							<thead class="sticky top-0 bg-base-200">
+								<tr>
+									<th class="w-24">ASN</th>
+									<th class="w-48">Organization</th>
+									<th class="w-56">Country</th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each coveredAsnsWithCountries as item}
+									<tr>
+										<td class="font-mono">AS{item.asn}</td>
+										<td class="truncate max-w-[200px]" title={item.name}>{item.name}</td>
+										<td>
+											{#if item.country}
+												<span class="flex items-center gap-1">
+													{countryToFlag(item.country)}
+													{item.country}
+													{#if item.countryName}
+														<span class="text-xs text-base-content/50">({item.countryName})</span>
+													{/if}
+												</span>
+											{:else}
+												<span class="text-base-content/50">--</span>
+											{/if}
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+					
+					<div class="modal-action mt-4">
+						<button 
+							class="btn btn-primary"
+							onclick={() => showAllAsnsModal = false}
+						>
+							Close
+						</button>
+					</div>
+				</div>
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div class="modal-backdrop" onclick={() => showAllAsnsModal = false} role="button" tabindex="-1" aria-label="Close modal"></div>
+			</div>
+		{/if}
 
 		<!-- Copy Results -->
 		<div class="bg-base-200 p-4 rounded-lg">
