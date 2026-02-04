@@ -603,24 +603,182 @@ export function sortPeersData(
      return [...entries].sort((a, b) => {
           let comparison = 0;
 
-          if (sortBy === "fullFeed") {
-               const aFullFeed = isFullFeed(a) ? 1 : 0;
-               const bFullFeed = isFullFeed(b) ? 1 : 0;
-               comparison = aFullFeed - bFullFeed;
-          } else {
-               const aVal = a[sortBy];
-               const bVal = b[sortBy];
+           if (sortBy === "fullFeed") {
+                const aFullFeed = isFullFeed(a) ? 1 : 0;
+                const bFullFeed = isFullFeed(b) ? 1 : 0;
+                comparison = aFullFeed - bFullFeed;
+           } else {
+                const aVal = a[sortBy];
+                const bVal = b[sortBy];
 
-               if (typeof aVal === "string" && typeof bVal === "string") {
-                    comparison = aVal.localeCompare(bVal);
-               } else if (
-                    typeof aVal === "number" &&
-                    typeof bVal === "number"
-               ) {
-                    comparison = aVal - bVal;
+                if (typeof aVal === "string" && typeof bVal === "string") {
+                     comparison = aVal.localeCompare(bVal);
+                } else if (
+                     typeof aVal === "number" &&
+                     typeof bVal === "number"
+                ) {
+                     comparison = aVal - bVal;
+                }
+           }
+
+           return direction === "asc" ? comparison : -comparison;
+      });
+}
+
+// Greedy maximum coverage algorithm for collector selection
+// Selects minimum set of collectors to maximize coverage of ASNs or countries
+export function calculateGreedyCoverage(
+     peersData: PeersDataEntry[],
+     asnData: Map<number, AsnInfo>,
+     goal: "asns" | "countries",
+     ipFamily: "all" | "ipv4" | "ipv6",
+     project: "any" | "rv" | "ris" | "balanced" = "any",
+     maxCollectors: number = 10,
+): {
+     selectedCollectors: string[];
+     totalCoverage: number;
+     coverageByStep: {
+          collector: string;
+          newCoverage: number;
+          cumulativeCoverage: number;
+     }[];
+     collectorDetails: Map<
+          string,
+          {
+               peers: PeersDataEntry[];
+               fullFeedPeers: PeersDataEntry[];
+               uniqueAsns: Set<number>;
+               uniqueCountries: Set<string>;
+          }
+     >;
+} {
+     // Filter peers by IP family and project
+     const filteredPeers = peersData.filter((peer) => {
+          // IP family filter
+          if (ipFamily === "ipv4" && peer.num_v4_pfxs === 0) return false;
+          if (ipFamily === "ipv6" && peer.num_v6_pfxs === 0) return false;
+          // Project filter (for non-balanced modes)
+          if (project === "rv" && isRipeRis(peer.collector)) return false;
+          if (project === "ris" && !isRipeRis(peer.collector)) return false;
+          return true;
+     });
+
+     // Group peers by collector
+     const collectorPeers = new Map<string, PeersDataEntry[]>();
+     for (const peer of filteredPeers) {
+          const existing = collectorPeers.get(peer.collector) || [];
+          existing.push(peer);
+          collectorPeers.set(peer.collector, existing);
+     }
+
+     // Calculate coverage for each collector (only full-feed peers)
+     const collectorDetails = new Map<
+          string,
+          {
+               peers: PeersDataEntry[];
+               fullFeedPeers: PeersDataEntry[];
+               uniqueAsns: Set<number>;
+               uniqueCountries: Set<string>;
+          }
+     >();
+
+     for (const [collector, peers] of collectorPeers) {
+          const fullFeedPeers = peers.filter(isFullFeed);
+          const uniqueAsns = new Set(fullFeedPeers.map((p) => p.asn));
+          const uniqueCountries = new Set<string>();
+
+          for (const peer of fullFeedPeers) {
+               const info = asnData.get(peer.asn);
+               if (info?.country) {
+                    uniqueCountries.add(info.country);
                }
           }
 
-          return direction === "asc" ? comparison : -comparison;
-     });
+          collectorDetails.set(collector, {
+               peers,
+               fullFeedPeers,
+               uniqueAsns,
+               uniqueCountries,
+          });
+     }
+
+     // Greedy selection
+     const selectedCollectors: string[] = [];
+     const coveredItems = new Set<string | number>();
+     const coverageByStep: {
+          collector: string;
+          newCoverage: number;
+          cumulativeCoverage: number;
+     }[] = [];
+
+     // Track counts for balanced mode
+     let rvCount = 0;
+     let risCount = 0;
+
+     while (selectedCollectors.length < maxCollectors) {
+          let bestCollector: string | null = null;
+          let bestNewCoverage = 0;
+          let bestItems: Set<string | number> = new Set();
+          let bestIsRis = false;
+
+          for (const [collector, details] of collectorDetails) {
+               if (selectedCollectors.includes(collector)) continue;
+
+               const isRisCollector = isRipeRis(collector);
+
+               // For balanced mode, enforce 50/50 split
+               if (project === "balanced") {
+                    const targetRv = Math.ceil(maxCollectors / 2);
+                    const targetRis = Math.floor(maxCollectors / 2);
+
+                    if (isRisCollector && risCount >= targetRis) continue;
+                    if (!isRisCollector && rvCount >= targetRv) continue;
+               }
+
+               const items =
+                    goal === "asns" ? details.uniqueAsns : details.uniqueCountries;
+               const newItems = new Set<string | number>();
+
+               for (const item of items) {
+                    if (!coveredItems.has(item)) {
+                         newItems.add(item);
+                    }
+               }
+
+               if (newItems.size > bestNewCoverage) {
+                    bestNewCoverage = newItems.size;
+                    bestCollector = collector;
+                    bestItems = newItems;
+                    bestIsRis = isRisCollector;
+               }
+          }
+
+          if (bestCollector === null || bestNewCoverage === 0) {
+               break;
+          }
+
+          selectedCollectors.push(bestCollector);
+          for (const item of bestItems) {
+               coveredItems.add(item);
+          }
+
+          if (bestIsRis) {
+               risCount++;
+          } else {
+               rvCount++;
+          }
+
+          coverageByStep.push({
+               collector: bestCollector,
+               newCoverage: bestNewCoverage,
+               cumulativeCoverage: coveredItems.size,
+          });
+     }
+
+     return {
+          selectedCollectors,
+          totalCoverage: coveredItems.size,
+          coverageByStep,
+          collectorDetails,
+     };
 }

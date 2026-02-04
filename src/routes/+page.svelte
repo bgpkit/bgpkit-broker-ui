@@ -6,6 +6,7 @@
     import PeersTable from "$lib/tables/peersTable.svelte";
     import PeersStats from "$lib/stats/peersStats.svelte";
     import CountryStats from "$lib/stats/countryStats.svelte";
+    import CollectorSelector from "$lib/components/CollectorSelector.svelte";
     import type { AsnInfo } from "$lib/types";
     import { fetchAsnInfoBatch } from "$lib/common";
     import { browser } from "$app/environment";
@@ -22,7 +23,7 @@
     let asnLoading = $state(true);
     let asnLoadProgress = $state({ loaded: 0, total: 0 });
 
-    // Tab state - 0 = Route Collectors, 1 = Collector Peers
+    // Tab state - 0 = Route Collectors, 1 = Collector Peers, 2 = Collector Selector
     // Start with 0 on server, will be corrected on client mount
     let activeTab = $state(0);
     let tabInitialized = $state(false);
@@ -33,8 +34,10 @@
 
         const url = new URL(window.location.href);
         const tabParam = url.searchParams.get("tab");
-        // Default to peers tab if any peers-specific modal params are present
-        if (
+        
+        if (tabParam === "selector") {
+            activeTab = 2;
+        } else if (
             tabParam === "peers" ||
             url.searchParams.has("asnModal") ||
             (url.searchParams.has("countryModal") && tabParam !== "collectors")
@@ -139,7 +142,7 @@
                 url.searchParams.delete("collector");
                 // Remove peers-specific modal params
                 url.searchParams.delete("asnModal");
-            } else {
+            } else if (tabIndex === 1) {
                 // Switching to peers tab
                 url.searchParams.set("tab", "peers");
                 // Clear collector modal param
@@ -152,6 +155,26 @@
                 url.searchParams.delete("status");
                 url.searchParams.delete("showDeprecated");
                 // Remove collectors-specific modal params
+                url.searchParams.delete("collectorModal");
+            } else if (tabIndex === 2) {
+                // Switching to collector selector tab
+                url.searchParams.set("tab", "selector");
+                // Clear other tab filters
+                peersCollectorFilter = null;
+                peersCountryFilter = null;
+                url.searchParams.delete("collector");
+                url.searchParams.delete("country");
+                url.searchParams.delete("project");
+                url.searchParams.delete("ip");
+                url.searchParams.delete("feed");
+                url.searchParams.delete("q");
+                url.searchParams.delete("search");
+                url.searchParams.delete("dataType");
+                url.searchParams.delete("status");
+                url.searchParams.delete("showDeprecated");
+                // Remove all modal params
+                url.searchParams.delete("asnModal");
+                url.searchParams.delete("countryModal");
                 url.searchParams.delete("collectorModal");
             }
 
@@ -227,6 +250,32 @@
                     initialCollector={peersCollectorFilter}
                     initialCountry={peersCountryFilter}
                     isActive={activeTab === 1}
+                />
+            {:else}
+                <div class="flex justify-center py-8">
+                    <span class="loading loading-dots loading-lg"></span>
+                </div>
+            {/if}
+        </div>
+
+        <input
+            type="radio"
+            name="tab"
+            role="tab"
+            class="tab"
+            checked={activeTab === 2}
+            aria-label="Collector Selector"
+            onchange={() => handleTabChange(2)}
+        />
+        <div
+            role="tabpanel"
+            class="tab-content bg-base-100 border-base-300 rounded-box p-6"
+        >
+            {#if peersData && asnData.size > 0}
+                <CollectorSelector
+                    {peersData}
+                    {asnData}
+                    isActive={activeTab === 2}
                 />
             {:else}
                 <div class="flex justify-center py-8">

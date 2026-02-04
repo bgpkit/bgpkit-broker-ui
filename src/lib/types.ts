@@ -124,3 +124,25 @@ export interface CountrySummary {
     fullFeedCount: number;
   }[];
 }
+
+// Coverage selector types
+export type CoverageGoal = "asns" | "countries";
+export type IpFamilyFilter = "all" | "ipv4" | "ipv6";
+
+export interface CollectorCoverage {
+  collector: string;
+  peers: PeersDataEntry[];
+  fullFeedPeers: PeersDataEntry[];
+  uniqueAsns: Set<number>;
+  uniqueCountries: Set<string>;
+}
+
+export interface CoverageResult {
+  selectedCollectors: string[];
+  totalCoverage: number;
+  coverageByStep: {
+    collector: string;
+    newCoverage: number;
+    cumulativeCoverage: number;
+  }[];
+}
