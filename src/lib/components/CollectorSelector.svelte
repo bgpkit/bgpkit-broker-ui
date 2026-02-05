@@ -379,7 +379,7 @@
      <div class="bg-base-200 p-4 rounded-lg">
           <h3 class="text-lg font-semibold mb-4">Route Collector Selector</h3>
           <p class="text-sm text-base-content/70 mb-4">
-               Select a subset of route collectors that provides the best
+               Select a subset of route collectors that provides the best collector peer
                coverage for building a BGP monitoring pipeline or searching for
                BGP messages. Only full-feed peers are considered since they
                provide the most complete routing data.
@@ -397,7 +397,7 @@
                          bind:value={goal}
                     >
                          <option value="asns">Unique Peer ASNs</option>
-                         <option value="countries">Unique Countries</option>
+                         <option value="countries">Unique Peer Countries</option>
                     </select>
                </div>
 
