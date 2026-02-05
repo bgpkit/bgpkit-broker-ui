@@ -14,10 +14,10 @@ import type {
 
 export function fileDelayed(delay: number, data_type: string): boolean {
      return (
-          (delay > 60 * 60 && data_type === "updates") ||
-          (delay > 60 * 60 * 24 && data_type === "rib")
+          (delay > UPDATES_DELAY_THRESHOLD_SECONDS && data_type === "updates") ||
+          (delay > RIB_DELAY_THRESHOLD_SECONDS && data_type === "rib")
      );
-}
+ }
 
 export const DEPRECATED_COLLECTORS = [
      "rrc02",
@@ -27,6 +27,18 @@ export const DEPRECATED_COLLECTORS = [
      "route-views.siex",
      "route-views.saopaulo",
 ];
+
+export const FULL_FEED_V4_THRESHOLD = 700_000;
+export const FULL_FEED_V6_THRESHOLD = 100_000;
+
+export const ASN_CACHE_MAX_SIZE = 10000;
+export const ASN_CACHE_TTL_MS = 60 * 60 * 1000;
+
+export const ASN_BATCH_SIZE = 1000;
+export const ASN_CONCURRENCY_LIMIT = 3;
+
+export const UPDATES_DELAY_THRESHOLD_SECONDS = 60 * 60;
+export const RIB_DELAY_THRESHOLD_SECONDS = 60 * 60 * 24;
 
 // Project detection helpers
 export function isRipeRis(collectorId: string): boolean {
@@ -58,8 +70,12 @@ export function getCollectorStatus(
 
 // Full-feed detection
 export function isFullFeed(entry: PeersDataEntry): boolean {
-     return entry.num_v4_pfxs > 700_000 || entry.num_v6_pfxs > 100_000;
-}
+     return entry.num_v4_pfxs > FULL_FEED_V4_THRESHOLD || entry.num_v6_pfxs > FULL_FEED_V6_THRESHOLD;
+ }
+
+export function matchesFullFeedThreshold(numV4Pfxs: number, numV6Pfxs: number): boolean {
+     return numV4Pfxs > FULL_FEED_V4_THRESHOLD || numV6Pfxs > FULL_FEED_V6_THRESHOLD;
+ }
 
 // Filter functions for broker data
 export function filterBrokerData(
@@ -191,67 +207,160 @@ export function filterPeersData(
                return false;
           }
 
-          // Country filter
-          if (countryFilter) {
-               const asnInfo = asnData.get(entry.asn);
-               if (!asnInfo?.country || asnInfo.country !== countryFilter) {
-                    return false;
-               }
-          }
+           // Country filter
+           if (countryFilter) {
+                const asnInfo = asnData.get(entry.asn);
+                if (!asnInfo?.country || asnInfo.country !== countryFilter) {
+                     return false;
+                }
+           }
 
-          return true;
-     });
+           return true;
+      });
+}
+
+export interface PeersFilterCriteria {
+      ipVersion?: IpVersionFilter;
+      project?: ProjectFilter;
+      fullFeed?: FullFeedFilter;
+      collector?: string | null;
+}
+
+export function peersMatchesCriteria(
+      entry: PeersDataEntry,
+      criteria: PeersFilterCriteria,
+      asnData: Map<number, AsnInfo>,
+): boolean {
+      if (criteria.ipVersion === "ipv4" && entry.num_v4_pfxs === 0) {
+           return false;
+      }
+      if (criteria.ipVersion === "ipv6" && entry.num_v6_pfxs === 0) {
+           return false;
+      }
+
+      if (criteria.project === "routeviews" && !isRouteViews(entry.collector)) {
+           return false;
+      }
+      if (criteria.project === "riperis" && !isRipeRis(entry.collector)) {
+           return false;
+      }
+
+      if (criteria.fullFeed === "fullfeed" && !isFullFeed(entry)) {
+           return false;
+      }
+      if (criteria.fullFeed === "partial" && isFullFeed(entry)) {
+           return false;
+      }
+
+      if (criteria.collector && entry.collector !== criteria.collector) {
+           return false;
+      }
+
+      return true;
+}
+
+export function filterPeersByCriteria(
+      entries: PeersDataEntry[],
+      criteria: PeersFilterCriteria,
+      asnData: Map<number, AsnInfo> = new Map(),
+): PeersDataEntry[] {
+      return entries.filter((entry) => peersMatchesCriteria(entry, criteria, asnData));
 }
 
 // ASN data fetching with caching
-const asnCache = new Map<number, AsnInfo>();
+interface CachedAsnInfo {
+      data: AsnInfo;
+      timestamp: number;
+}
+
+const asnCache = new Map<number, CachedAsnInfo>();
+const pendingRequests = new Map<number, Promise<AsnInfo | null>>();
+
+function cleanupCache(): void {
+      const now = Date.now();
+      const entriesToRemove: number[] = [];
+
+      for (const [asn, entry] of asnCache.entries()) {
+            if (now - entry.timestamp > ASN_CACHE_TTL_MS) {
+                  entriesToRemove.push(asn);
+            }
+      }
+
+      for (const asn of entriesToRemove) {
+            asnCache.delete(asn);
+      }
+
+      while (asnCache.size > ASN_CACHE_MAX_SIZE) {
+            const firstKey = asnCache.keys().next().value;
+            if (firstKey !== undefined) {
+                  asnCache.delete(firstKey);
+            }
+      }
+}
 
 export async function fetchAsnInfo(asn: number): Promise<AsnInfo | null> {
-     if (asnCache.has(asn)) {
-          return asnCache.get(asn)!;
-     }
+      const cached = asnCache.get(asn);
+      if (cached && Date.now() - cached.timestamp < ASN_CACHE_TTL_MS) {
+            return cached.data;
+      }
 
-     try {
-          const response = await fetch(
-               `https://api.bgpkit.com/v3/utils/asn?asn=${asn}`,
-          );
-          if (!response.ok) {
-               return null;
-          }
-          const data: AsnApiResponse = await response.json();
-          if (data.data && data.data.length > 0) {
-               const asnInfo = data.data[0];
-               asnCache.set(asn, asnInfo);
-               return asnInfo;
-          }
-          return null;
-     } catch (error) {
-          console.error(`Failed to fetch ASN info for ${asn}:`, error);
-          return null;
-     }
+      const existingRequest = pendingRequests.get(asn);
+      if (existingRequest) {
+            return existingRequest;
+      }
+
+      const request = (async (): Promise<AsnInfo | null> => {
+            try {
+                  const response = await fetch(
+                       `https://api.bgpkit.com/v3/utils/asn?asn=${asn}`,
+                  );
+                  if (!response.ok) {
+                        return null;
+                  }
+                  const data: AsnApiResponse = await response.json();
+                  if (data.data && data.data.length > 0) {
+                        const asnInfo = data.data[0];
+                        cleanupCache();
+                        asnCache.set(asn, { data: asnInfo, timestamp: Date.now() });
+                        return asnInfo;
+                  }
+                  return null;
+            } catch (error) {
+                  console.error(`Failed to fetch ASN info for ${asn}:`, error);
+                  return null;
+            } finally {
+                  pendingRequests.delete(asn);
+            }
+      })();
+
+      pendingRequests.set(asn, request);
+      return request;
 }
 
 // Bulk fetch ASN info using POST endpoint with JSON body (much faster than individual requests)
-export async function fetchAsnInfoBulk(
-     asns: number[],
+export async function fetchAsnInfoPost(
+      asns: number[],
 ): Promise<Map<number, AsnInfo>> {
-     const result = new Map<number, AsnInfo>();
+      const result = new Map<number, AsnInfo>();
 
-     if (asns.length === 0) {
-          return result;
-     }
+      if (asns.length === 0) {
+           return result;
+      }
 
-     // Check cache first
-     const uncachedAsns = asns.filter((asn) => {
-          if (asnCache.has(asn)) {
-               result.set(asn, asnCache.get(asn)!);
-               return false;
-          }
-          return true;
-     });
+      const now = Date.now();
 
-     if (uncachedAsns.length === 0) {
-          return result;
+      // Check cache first
+      const uncachedAsns = asns.filter((asn) => {
+           const cached = asnCache.get(asn);
+           if (cached && now - cached.timestamp < ASN_CACHE_TTL_MS) {
+                result.set(asn, cached.data);
+                return false;
+           }
+           return true;
+      });
+
+      if (uncachedAsns.length === 0) {
+           return result;
      }
 
      const startTime = performance.now();
@@ -265,99 +374,100 @@ export async function fetchAsnInfoBulk(
                body: JSON.stringify({ asns: uncachedAsns }),
           });
 
-          const duration = performance.now() - startTime;
-          if (response.ok) {
-               const data: AsnApiResponse = await response.json();
-               if (data.data && data.data.length > 0) {
-                    data.data.forEach((info) => {
-                         asnCache.set(info.asn, info);
-                         result.set(info.asn, info);
-                    });
-               }
-               console.log(
-                    `[ASN Bulk] Fetched ${data.data?.length || 0}/${uncachedAsns.length} ASNs in ${duration.toFixed(1)}ms`,
-               );
-          } else {
-               console.error(
-                    `[ASN Bulk] Failed to fetch ${uncachedAsns.length} ASNs: HTTP ${response.status} (${duration.toFixed(1)}ms)`,
-               );
-          }
-     } catch (error) {
-          const duration = performance.now() - startTime;
-          console.error(
-               `[ASN Bulk] Error fetching ${uncachedAsns.length} ASNs after ${duration.toFixed(1)}ms:`,
-               error,
-          );
-     }
+           const duration = performance.now() - startTime;
+           if (response.ok) {
+                const data: AsnApiResponse = await response.json();
+                if (data.data && data.data.length > 0) {
+                     data.data.forEach((info) => {
+                          asnCache.set(info.asn, { data: info, timestamp: Date.now() });
+                          result.set(info.asn, info);
+                     });
+                     cleanupCache();
+                }
+                console.log(
+                     `[ASN Bulk] Fetched ${data.data?.length || 0}/${uncachedAsns.length} ASNs in ${duration.toFixed(1)}ms`,
+                );
+           } else {
+                console.error(
+                     `[ASN Bulk] Failed to fetch ${uncachedAsns.length} ASNs: HTTP ${response.status} (${duration.toFixed(1)}ms)`,
+                );
+           }
+      } catch (error) {
+           const duration = performance.now() - startTime;
+           console.error(
+                `[ASN Bulk] Error fetching ${uncachedAsns.length} ASNs after ${duration.toFixed(1)}ms:`,
+                error,
+           );
+      }
 
-     return result;
-}
+      return result;
+ }
 
 // Batch fetch ASN info using bulk API (for large sets of ASNs)
 // Fetches batches in parallel with concurrency limit for optimal performance
 export async function fetchAsnInfoBatch(
-     asns: number[],
-     onProgress?: (loaded: number, total: number) => void,
+      asns: number[],
+      onProgress?: (loaded: number, total: number) => void,
 ): Promise<Map<number, AsnInfo>> {
-     const startTime = performance.now();
-     const result = new Map<number, AsnInfo>();
-     const uncachedAsns = asns.filter((asn) => {
-          if (asnCache.has(asn)) {
-               result.set(asn, asnCache.get(asn)!);
-               return false;
-          }
-          return true;
-     });
+      const startTime = performance.now();
+      const result = new Map<number, AsnInfo>();
+      const now = Date.now();
 
-     const cachedCount = asns.length - uncachedAsns.length;
-     if (cachedCount > 0) {
-          console.log(`[ASN Batch] Using ${cachedCount} cached ASNs`);
-     }
+      const uncachedAsns = asns.filter((asn) => {
+           const cached = asnCache.get(asn);
+           if (cached && now - cached.timestamp < ASN_CACHE_TTL_MS) {
+                result.set(asn, cached.data);
+                return false;
+           }
+           return true;
+      });
 
-     if (uncachedAsns.length === 0) {
-          return result;
-     }
+      const cachedCount = asns.length - uncachedAsns.length;
+      if (cachedCount > 0) {
+           console.log(`[ASN Batch] Using ${cachedCount} cached ASNs`);
+      }
 
-     // Fetch in batches with parallel concurrency
-     const batchSize = 1000;
-     const concurrencyLimit = 3; // Fetch up to 3 batches simultaneously
-     let loaded = result.size;
+      if (uncachedAsns.length === 0) {
+           return result;
+      }
 
-     // Create all batch promises
-     const batches: number[][] = [];
-     for (let i = 0; i < uncachedAsns.length; i += batchSize) {
-          batches.push(uncachedAsns.slice(i, i + batchSize));
-     }
+      let loaded = result.size;
 
-     console.log(
-          `[ASN Batch] Fetching ${uncachedAsns.length} ASNs in ${batches.length} parallel batches (concurrency: ${concurrencyLimit})...`,
-     );
+      // Create all batch promises
+      const batches: number[][] = [];
+      for (let i = 0; i < uncachedAsns.length; i += ASN_BATCH_SIZE) {
+           batches.push(uncachedAsns.slice(i, i + ASN_BATCH_SIZE));
+      }
 
-     // Process batches with concurrency limit
-     const processBatch = async (batch: number[], batchIndex: number) => {
-          const batchStart = performance.now();
-          const batchResults = await fetchAsnInfoBulk(batch);
-          const batchDuration = performance.now() - batchStart;
+      console.log(
+           `[ASN Batch] Fetching ${uncachedAsns.length} ASNs in ${batches.length} parallel batches (concurrency: ${ASN_CONCURRENCY_LIMIT})...`,
+      );
 
-          batchResults.forEach((info, asn) => {
-               result.set(asn, info);
-          });
+      // Process batches with concurrency limit
+      const processBatch = async (batch: number[], batchIndex: number) => {
+           const batchStart = performance.now();
+           const batchResults = await fetchAsnInfoPost(batch);
+           const batchDuration = performance.now() - batchStart;
 
-          loaded += batch.length;
-          onProgress?.(loaded, asns.length);
+           batchResults.forEach((info, asn) => {
+                result.set(asn, info);
+           });
 
-          console.log(
-               `[ASN Batch] Batch ${batchIndex + 1}/${batches.length} completed in ${batchDuration.toFixed(1)}ms (${batchResults.size}/${batch.length} ASNs)`,
-          );
-     };
+           loaded += batch.length;
+           onProgress?.(loaded, asns.length);
 
-     // Execute with concurrency control
-     for (let i = 0; i < batches.length; i += concurrencyLimit) {
-          const currentBatches = batches.slice(i, i + concurrencyLimit);
-          await Promise.all(
-               currentBatches.map((batch, idx) => processBatch(batch, i + idx)),
-          );
-     }
+           console.log(
+                `[ASN Batch] Batch ${batchIndex + 1}/${batches.length} completed in ${batchDuration.toFixed(1)}ms (${batchResults.size}/${batch.length} ASNs)`,
+           );
+      };
+
+      // Execute with concurrency control
+      for (let i = 0; i < batches.length; i += ASN_CONCURRENCY_LIMIT) {
+           const currentBatches = batches.slice(i, i + ASN_CONCURRENCY_LIMIT);
+           await Promise.all(
+                currentBatches.map((batch, idx) => processBatch(batch, i + idx)),
+           );
+      }
 
      const totalDuration = performance.now() - startTime;
      console.log(
@@ -908,13 +1018,11 @@ export function debugCoverageAnalysis(
 ) {
 	console.log("=== Debug Coverage Analysis ===\n");
 
-	const isFullFeedPeer = (peer: PeersDataEntry) =>
-		(peer.num_v4_pfxs > 700_000) || (peer.num_v6_pfxs > 100_000);
+	const fullFeedPeers = peersData.filter(isFullFeed);
 
 	const collectors = new Set<string>();
 	const risCollectors = new Set<string>();
 	const rvCollectors = new Set<string>();
-	const fullFeedPeers = peersData.filter(isFullFeedPeer);
 
 	for (const peer of fullFeedPeers) {
 		collectors.add(peer.collector);

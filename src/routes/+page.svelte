@@ -23,32 +23,36 @@
     let asnLoadProgress = $state({ loaded: 0, total: 0 });
 
     // Tab state - 0 = Route Collectors, 1 = Collector Peers, 2 = Collector Selector
-    // Start with 0 on server, will be corrected on client mount
     let activeTab = $state(0);
-    let tabInitialized = $state(false);
+    let urlTabInitialized = $state(false);
 
     // Initialize tab state from URL on client mount
     $effect(() => {
-        if (!browser || tabInitialized) return;
+        if (!browser || urlTabInitialized) return;
 
         const url = new URL(window.location.href);
         const tabParam = url.searchParams.get("tab");
-        
+        let newTab = 0;
+
         if (tabParam === "selector") {
-            activeTab = 2;
+            newTab = 2;
         } else if (
             tabParam === "peers" ||
             url.searchParams.has("asnModal") ||
             (url.searchParams.has("countryModal") && tabParam !== "collectors")
         ) {
-            activeTab = 1;
+            newTab = 1;
         }
-        tabInitialized = true;
+
+        if (newTab !== 0) {
+            activeTab = newTab;
+        }
+        urlTabInitialized = true;
     });
 
     // Update URL and cleanup when tab changes
     $effect(() => {
-        if (!browser || !tabInitialized) return;
+        if (!browser || !urlTabInitialized) return;
         
         const url = new URL(window.location.href);
         const currentTab = url.searchParams.get("tab");
@@ -103,7 +107,7 @@
 
     // Initialize filters from URL (only on client)
     $effect(() => {
-        if (!browser) return;
+        if (!browser || !urlTabInitialized) return;
 
         const url = new URL(window.location.href);
 

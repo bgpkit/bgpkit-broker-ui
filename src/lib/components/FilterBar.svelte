@@ -48,10 +48,11 @@
     // Debounced search - local input value that updates the bound search with delay
     let searchInput = $state(search);
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let isUserTyping = $state(false);
 
-    // Sync initial search value
+    // Sync initial search value from props (e.g., from URL params)
     $effect(() => {
-        if (search !== searchInput && debounceTimer === null) {
+        if (!isUserTyping && search !== searchInput) {
             searchInput = search;
         }
     });
@@ -59,6 +60,7 @@
     function handleSearchInput(event: Event) {
         const target = event.target as HTMLInputElement;
         searchInput = target.value;
+        isUserTyping = true;
 
         // Clear existing timer
         if (debounceTimer) {
@@ -69,6 +71,7 @@
         debounceTimer = setTimeout(() => {
             search = searchInput;
             debounceTimer = null;
+            isUserTyping = false;
         }, 200);
     }
 

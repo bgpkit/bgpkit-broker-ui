@@ -432,9 +432,14 @@
     // Initialize container height on mount
     $effect(() => {
         if (!isActive) return;
+
         updateContainerHeight();
+
         window.addEventListener('resize', updateContainerHeight);
-        return () => window.removeEventListener('resize', updateContainerHeight);
+
+        return () => {
+            window.removeEventListener('resize', updateContainerHeight);
+        };
     });
 </script>
 
