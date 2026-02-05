@@ -1,5 +1,5 @@
 <script lang="ts">
-     import type { PeersData, AsnInfo, BrokerData } from "../types";
+      import type { PeersData, AsnInfo, BrokerData, BrokerDataEntry } from "../types";
      import {
           calculateGreedyCoverage,
           calculateCoverageCurve,
@@ -38,35 +38,43 @@
           }
      });
 
-     function handleSliderChange() {
-          maxCollectors = sliderValue;
-     }
+      // Update maxCollectors when slider interaction ends
+      // Using onchange which fires when user releases the slider
+      function handleSliderChange() {
+           maxCollectors = sliderValue;
+      }
 
      // Calculate coverage when inputs change
 
-     // Helper: Get file size for a collector from broker data (updates only, no RIB)
-     function getCollectorFileSize(collectorId: string): {
-          updatesSize: number;
-     } {
-          if (!brokerData?.data) return { updatesSize: 0 };
+      // Pre-index broker data by collector_id for O(1) lookups (performance optimization)
+      let brokerDataByCollector = $derived.by(() => {
+           if (!brokerData?.data) return new Map<string, BrokerDataEntry[]>();
 
-          // Get all entries for this collector
-          const entries = brokerData.data.filter(
-               (e) => e.collector_id === collectorId,
-          );
+           const index = new Map<string, BrokerDataEntry[]>();
+           for (const entry of brokerData.data) {
+                const existing = index.get(entry.collector_id) || [];
+                existing.push(entry);
+                index.set(entry.collector_id, existing);
+           }
+           return index;
+      });
 
-          if (entries.length === 0) return { updatesSize: 0 };
+      // Helper: Get file size for a collector from broker data (updates only, no RIB)
+      function getCollectorFileSize(collectorId: string): {
+           updatesSize: number;
+      } {
+           const entries = brokerDataByCollector.get(collectorId);
+           if (!entries || entries.length === 0) return { updatesSize: 0 };
 
-          // Sum up updates file sizes
-          let updatesSize = 0;
-          for (const entry of entries) {
-               if (entry.data_type === "updates") {
-                    updatesSize += entry.rough_size;
-               }
-          }
+           let updatesSize = 0;
+           for (const entry of entries) {
+                if (entry.data_type === "updates") {
+                     updatesSize += entry.rough_size;
+                }
+           }
 
-          return { updatesSize };
-     }
+           return { updatesSize };
+      }
 
      // Helper: Get file sizes for multiple collectors (updates only, no RIB)
      function getCollectorsFileSizes(collectors: string[]): {
@@ -433,17 +441,16 @@
                               >Maximum Collectors ({sliderValue})</span
                          >
                     </label>
-                    <input
-                         id="max-collectors-input"
-                         type="range"
-                         class="range range-primary"
-                         bind:value={sliderValue}
-                         min="1"
-                         max={availableCollectorsCount}
-                         step="1"
-                         onmouseup={handleSliderChange}
-                         ontouchend={handleSliderChange}
-                    />
+                     <input
+                          id="max-collectors-input"
+                          type="range"
+                          class="range range-primary"
+                          bind:value={sliderValue}
+                          min="1"
+                          max={availableCollectorsCount}
+                          step="1"
+                          onchange={handleSliderChange}
+                     />
                     <div class="w-full flex justify-between text-xs px-2 mt-1">
                          <span>1</span>
                          <span>{availableCollectorsCount}</span>

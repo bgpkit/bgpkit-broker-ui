@@ -787,118 +787,118 @@ export function calculateGreedyCoverage(
 	};
 }
 
-	// Calculate coverage curve data for chart visualization
-	// Runs the greedy algorithm twice: once optimizing for ASNs, once for countries
-	export function calculateCoverageCurve(
-		peersData: PeersDataEntry[],
-		asnInfoMap: Map<number, AsnInfo>,
-		ipFamily: "all" | "ipv4" | "ipv6",
-		project: "any" | "rv" | "ris" | "balanced" = "any",
-		maxCollectors: number = 81,
-	): {
-		labels: number[];
-		asnCoverage: { counts: number[]; percents: number[] };
-		countryCoverage: { counts: number[]; percents: number[] };
-	} {
-		// Calculate baseline totals from ALL collectors (ignoring project filter)
-		// Use ASNs with at least one full-feed peer for percentage calculation
-		const baselinePeers = peersData.filter((peer) => {
-			if (ipFamily === "ipv4" && peer.num_v4_pfxs === 0) return false;
-			if (ipFamily === "ipv6" && peer.num_v6_pfxs === 0) return false;
-			return true;
-		});
+// Calculate coverage curve data for chart visualization
+// Runs the greedy algorithm twice: once optimizing for ASNs, once for countries
+export function calculateCoverageCurve(
+	peersData: PeersDataEntry[],
+	asnInfoMap: Map<number, AsnInfo>,
+	ipFamily: "all" | "ipv4" | "ipv6",
+	project: "any" | "rv" | "ris" | "balanced" = "any",
+	maxCollectors: number = 81,
+): {
+	labels: number[];
+	asnCoverage: { counts: number[]; percents: number[] };
+	countryCoverage: { counts: number[]; percents: number[] };
+} {
+	// Calculate baseline totals from ALL collectors (ignoring project filter)
+	// Use ASNs with at least one full-feed peer for percentage calculation
+	const baselinePeers = peersData.filter((peer) => {
+		if (ipFamily === "ipv4" && peer.num_v4_pfxs === 0) return false;
+		if (ipFamily === "ipv6" && peer.num_v6_pfxs === 0) return false;
+		return true;
+	});
 
-		const baselineFullFeedPeers = baselinePeers.filter(isFullFeed);
-		const baselineAsns = new Set(baselineFullFeedPeers.map((p) => p.asn));
-		const baselineCountries = new Set<string>();
+	const baselineFullFeedPeers = baselinePeers.filter(isFullFeed);
+	const baselineAsns = new Set(baselineFullFeedPeers.map((p) => p.asn));
+	const baselineCountries = new Set<string>();
 
-		for (const peer of baselineFullFeedPeers) {
-			const info = asnInfoMap.get(peer.asn);
-			if (info?.country) {
-				baselineCountries.add(info.country);
-			}
+	for (const peer of baselineFullFeedPeers) {
+		const info = asnInfoMap.get(peer.asn);
+		if (info?.country) {
+			baselineCountries.add(info.country);
 		}
-
-		const totalBaselineAsns = baselineAsns.size;
-		const totalBaselineCountries = baselineCountries.size;
-
-		// Filter peers by IP family and project (same logic as greedy algorithm)
-		const filteredPeers = peersData.filter((peer) => {
-			if (ipFamily === "ipv4" && peer.num_v4_pfxs === 0) return false;
-			if (ipFamily === "ipv6" && peer.num_v6_pfxs === 0) return false;
-			if (project === "rv" && isRipeRis(peer.collector)) return false;
-			if (project === "ris" && !isRipeRis(peer.collector)) return false;
-			return true;
-		});
-
-		// Get available collectors (same logic as greedy algorithm)
-		const availableCollectors = new Set(filteredPeers.map((p) => p.collector));
-		const totalAvailableCollectors = availableCollectors.size;
-
-		const labels: number[] = [];
-		const asnCounts: number[] = [];
-		const asnPercents: number[] = [];
-		const countryCounts: number[] = [];
-		const countryPercents: number[] = [];
-
-		for (let i = 1; i <= maxCollectors; i++) {
-			const effectiveMax = Math.min(i, totalAvailableCollectors);
-
-			// Run greedy algorithm optimized for ASNs
-			const asnResult = calculateGreedyCoverage(
-				peersData,
-				asnInfoMap,
-				"asns",
-				ipFamily,
-				project,
-				effectiveMax,
-			);
-
-			// Run greedy algorithm optimized for countries
-			const countryResult = calculateGreedyCoverage(
-				peersData,
-				asnInfoMap,
-				"countries",
-				ipFamily,
-				project,
-				effectiveMax,
-			);
-
-			// Count unique ASNs from ASN-optimized selection
-			const selectedAsns = new Set<number>();
-			for (const collector of asnResult.selectedCollectors) {
-				const details = asnResult.collectorDetails.get(collector);
-				if (details) {
-					for (const asn of details.uniqueAsns) {
-						selectedAsns.add(asn);
-					}
-				}
-			}
-
-			// Count unique countries from country-optimized selection
-			const selectedCountries = new Set<string>();
-			for (const collector of countryResult.selectedCollectors) {
-				const details = countryResult.collectorDetails.get(collector);
-				if (details) {
-					for (const country of details.uniqueCountries) {
-						selectedCountries.add(country);
-					}
-				}
-			}
-
-			labels.push(i);
-			asnCounts.push(selectedAsns.size);
-			asnPercents.push(totalBaselineAsns > 0 ? Math.round((selectedAsns.size / totalBaselineAsns) * 100) : 0);
-			countryCounts.push(selectedCountries.size);
-			countryPercents.push(totalBaselineCountries > 0 ? Math.round((selectedCountries.size / totalBaselineCountries) * 100) : 0);
-		}
-
-		return {
-			labels,
-			asnCoverage: { counts: asnCounts, percents: asnPercents },
-			countryCoverage: { counts: countryCounts, percents: countryPercents },
-		};
 	}
+
+	const totalBaselineAsns = baselineAsns.size;
+	const totalBaselineCountries = baselineCountries.size;
+
+	// Filter peers by IP family and project (same logic as greedy algorithm)
+	const filteredPeers = peersData.filter((peer) => {
+		if (ipFamily === "ipv4" && peer.num_v4_pfxs === 0) return false;
+		if (ipFamily === "ipv6" && peer.num_v6_pfxs === 0) return false;
+		if (project === "rv" && isRipeRis(peer.collector)) return false;
+		if (project === "ris" && !isRipeRis(peer.collector)) return false;
+		return true;
+	});
+
+	// Get available collectors (same logic as greedy algorithm)
+	const availableCollectors = new Set(filteredPeers.map((p) => p.collector));
+	const totalAvailableCollectors = availableCollectors.size;
+
+	const labels: number[] = [];
+	const asnCounts: number[] = [];
+	const asnPercents: number[] = [];
+	const countryCounts: number[] = [];
+	const countryPercents: number[] = [];
+
+	for (let i = 1; i <= maxCollectors; i++) {
+		const effectiveMax = Math.min(i, totalAvailableCollectors);
+
+		// Run greedy algorithm optimized for ASNs
+		const asnResult = calculateGreedyCoverage(
+			peersData,
+			asnInfoMap,
+			"asns",
+			ipFamily,
+			project,
+			effectiveMax,
+		);
+
+		// Run greedy algorithm optimized for countries
+		const countryResult = calculateGreedyCoverage(
+			peersData,
+			asnInfoMap,
+			"countries",
+			ipFamily,
+			project,
+			effectiveMax,
+		);
+
+		// Count unique ASNs from ASN-optimized selection
+		const selectedAsns = new Set<number>();
+		for (const collector of asnResult.selectedCollectors) {
+			const details = asnResult.collectorDetails.get(collector);
+			if (details) {
+				for (const asn of details.uniqueAsns) {
+					selectedAsns.add(asn);
+				}
+			}
+		}
+
+		// Count unique countries from country-optimized selection
+		const selectedCountries = new Set<string>();
+		for (const collector of countryResult.selectedCollectors) {
+			const details = countryResult.collectorDetails.get(collector);
+			if (details) {
+				for (const country of details.uniqueCountries) {
+					selectedCountries.add(country);
+				}
+			}
+		}
+
+		labels.push(i);
+		asnCounts.push(selectedAsns.size);
+		asnPercents.push(totalBaselineAsns > 0 ? Math.round((selectedAsns.size / totalBaselineAsns) * 100) : 0);
+		countryCounts.push(selectedCountries.size);
+		countryPercents.push(totalBaselineCountries > 0 ? Math.round((selectedCountries.size / totalBaselineCountries) * 100) : 0);
+	}
+
+	return {
+		labels,
+		asnCoverage: { counts: asnCounts, percents: asnPercents },
+		countryCoverage: { counts: countryCounts, percents: countryPercents },
+	};
+}
 
 // Debug function to analyze coverage issues
 export function debugCoverageAnalysis(

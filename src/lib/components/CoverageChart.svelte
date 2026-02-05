@@ -96,8 +96,8 @@
 						annotations: {
 							currentMaxLine: {
 								type: 'line',
-								xMin: sliderPosition - 1,
-								xMax: sliderPosition - 1,
+								xMin: Math.max(0, sliderPosition - 1),
+								xMax: Math.max(0, sliderPosition - 1),
 								borderColor: 'rgba(255, 99, 71, 0.8)',
 								borderWidth: 2,
 								borderDash: [6, 6],
@@ -152,6 +152,14 @@
 	});
 
 	// Full chart update when data changes
+	$effect(() => {
+		if (chart) {
+			chart.data.labels = labels.map(String);
+			chart.data.datasets[0].data = asnCoverage.percents;
+			chart.data.datasets[1].data = countryCoverage.percents;
+			chart.update();
+		}
+	});
 
 	onDestroy(() => {
 		if (chart) {
