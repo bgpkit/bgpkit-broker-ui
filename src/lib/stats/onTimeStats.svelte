@@ -22,20 +22,20 @@
     });
 </script>
 
-<div class="flex-1 mx-auto stats shadow-lg">
+<div class="stats shadow-lg w-full sm:flex-1">
     {#if !ready}
         <span class="loading loading-dots loading-lg"></span>
     {:else}
-        <div class="stat">
-            <div class="stat-title">Date On-time Rate</div>
-            <div class="stat-value">{(onTimeRate * 100).toFixed(1)}%</div>
+        <div class="stat py-3 sm:py-4">
+            <div class="stat-title text-xs sm:text-sm">Data On-time Rate</div>
+            <div class="stat-value text-2xl sm:text-3xl">{(onTimeRate * 100).toFixed(1)}%</div>
             {#if delayed.length === 0}
                 <div class="inline-flex items-center space-x-2">
                     <div class="inline-grid *:[grid-area:1/1]">
                         <div class="status status-success animate-ping"></div>
                         <div class="status status-success"></div>
                     </div>
-                    <div class="stat-desc">All on time</div>
+                    <div class="stat-desc text-xs">All on time</div>
                 </div>
             {:else}
                 <div class="inline-flex items-center space-x-2">
@@ -43,7 +43,7 @@
                         <div class="status status-error animate-ping"></div>
                         <div class="status status-error"></div>
                     </div>
-                    <div class="stat-desc">Delayed: {delayed}</div>
+                    <div class="stat-desc text-xs">Delayed: {delayed.slice(0, 2).join(", ")}{delayed.length > 2 ? "..." : ""}</div>
                 </div>
             {/if}
         </div>

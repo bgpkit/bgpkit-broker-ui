@@ -18,15 +18,15 @@
     });
 </script>
 
-<div class="flex-1 mx-auto stats shadow-lg">
+<div class="stats shadow-lg w-full sm:flex-1">
     {#if countRv + countRis === 0}
         <span class="loading loading-dots loading-lg"></span>
     {:else}
-        <div class="stat">
-            <div class="stat-title">Route Collectors</div>
-            <div class="stat-value">{countRis + countRv}</div>
-            <div class="stat-desc">RouteViews {countRv}</div>
-            <div class="stat-desc">RIPE RIS {countRis}</div>
+        <div class="stat py-3 sm:py-4">
+            <div class="stat-title text-xs sm:text-sm">Route Collectors</div>
+            <div class="stat-value text-2xl sm:text-3xl">{countRis + countRv}</div>
+            <div class="stat-desc text-xs">RouteViews {countRv}</div>
+            <div class="stat-desc text-xs">RIPE RIS {countRis}</div>
         </div>
     {/if}
 </div>

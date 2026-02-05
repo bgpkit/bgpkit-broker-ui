@@ -32,17 +32,17 @@
     });
 </script>
 
-<div class="flex-1 mx-auto stats shadow-lg">
+<div class="stats shadow-lg w-full sm:flex-1">
     {#if !ready}
         <span class="loading loading-dots loading-lg"></span>
     {:else}
-        <div class="stat">
-            <div class="stat-title">Full-feed Collector Peers</div>
-            <div class="stat-value">
-                {fullFeedRis + fullFeedRv} ({allRis + allRv})
+        <div class="stat py-3 sm:py-4">
+            <div class="stat-title text-xs sm:text-sm">Full-feed Peers</div>
+            <div class="stat-value text-2xl sm:text-3xl">
+                {fullFeedRis + fullFeedRv} <span class="text-base-content/50 text-lg">({allRis + allRv})</span>
             </div>
-            <div class="stat-desc">RouteViews: {fullFeedRv} ({allRv})</div>
-            <div class="stat-desc">RIPE RIS: {fullFeedRis} ({allRis})</div>
+            <div class="stat-desc text-xs">RV: {fullFeedRv} ({allRv})</div>
+            <div class="stat-desc text-xs">RIS: {fullFeedRis} ({allRis})</div>
         </div>
     {/if}
 </div>

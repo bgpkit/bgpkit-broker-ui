@@ -54,28 +54,28 @@
     );
 </script>
 
-<div class="flex-1 mx-auto stats shadow-lg">
+<div class="stats shadow-lg w-full sm:flex-1">
     {#if isLoading}
-        <div class="stat">
-            <div class="stat-title">Country/Region Coverage</div>
+        <div class="stat py-3 sm:py-4">
+            <div class="stat-title text-xs sm:text-sm">Country/Region Coverage</div>
             <div class="stat-value flex items-center gap-2">
                 <span class="loading loading-spinner loading-md"></span>
             </div>
-            <div class="stat-desc">Loading ASN data...</div>
+            <div class="stat-desc text-xs">Loading ASN data...</div>
         </div>
     {:else if !ready}
-        <div class="stat">
-            <div class="stat-title">Country/Region Coverage</div>
+        <div class="stat py-3 sm:py-4">
+            <div class="stat-title text-xs sm:text-sm">Country/Region Coverage</div>
             <div class="stat-value">--</div>
-            <div class="stat-desc">No ASN data available</div>
+            <div class="stat-desc text-xs">No ASN data available</div>
         </div>
     {:else}
-        <div class="stat">
-            <div class="stat-title">Country/Region Coverage</div>
-            <div class="stat-value">{uniqueCountries}</div>
-            <div class="stat-desc">from {totalAsns} ASNs</div>
+        <div class="stat py-3 sm:py-4">
+            <div class="stat-title text-xs sm:text-sm">Country/Region Coverage</div>
+            <div class="stat-value text-2xl sm:text-3xl">{uniqueCountries}</div>
+            <div class="stat-desc text-xs">from {totalAsns} ASNs</div>
             {#if topCountries.length > 0}
-                <div class="stat-desc mt-2 flex flex-wrap gap-1">
+                <div class="stat-desc mt-1 flex flex-wrap gap-1">
                     {#each topCountries as { country, count }}
                         <span
                             class="badge badge-sm gap-1"

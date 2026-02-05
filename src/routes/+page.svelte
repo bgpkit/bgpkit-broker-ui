@@ -242,7 +242,7 @@
         </div>
     {/if}
 
-    <div class="flex flex-wrap pt-8 px-auto gap-4 lg:gap-8">
+    <div class="flex flex-wrap pt-8 px-auto gap-4">
         <CollectorStats {brokerData} />
         <OnTimeStats {brokerData} />
         <PeersStats {peersData} />
@@ -321,9 +321,10 @@
             role="tabpanel"
             class="tab-content bg-base-100 border-base-300 rounded-box p-6"
         >
-            {#if peersData && asnData.size > 0}
+            {#if peersData && asnData.size > 0 && brokerData}
                 <CollectorSelector
                     {peersData}
+                    {brokerData}
                     {asnData}
                     isActive={activeTab === 2}
                 />

@@ -628,208 +628,342 @@ export function sortPeersData(
 // Greedy maximum coverage algorithm for collector selection
 // Selects minimum set of collectors to maximize coverage of ASNs or countries
 export function calculateGreedyCoverage(
-     peersData: PeersDataEntry[],
-     asnData: Map<number, AsnInfo>,
-     goal: "asns" | "countries",
-     ipFamily: "all" | "ipv4" | "ipv6",
-     project: "any" | "rv" | "ris" | "balanced" = "any",
-     maxCollectors: number = 10,
+	peersData: PeersDataEntry[],
+	asnData: Map<number, AsnInfo>,
+	goal: "asns" | "countries",
+	ipFamily: "all" | "ipv4" | "ipv6",
+	project: "any" | "rv" | "ris" | "balanced" = "any",
+	maxCollectors: number = 10,
 ): {
-     selectedCollectors: string[];
-     totalCoverage: number;
-     coverageByStep: {
-          collector: string;
-          newCoverage: number;
-          cumulativeCoverage: number;
-     }[];
-     collectorDetails: Map<
-          string,
-          {
-               peers: PeersDataEntry[];
-               fullFeedPeers: PeersDataEntry[];
-               uniqueAsns: Set<number>;
-               uniqueCountries: Set<string>;
-          }
-     >;
+	selectedCollectors: string[];
+	totalCoverage: number;
+	coverageByStep: {
+		collector: string;
+		newCoverage: number;
+		cumulativeCoverage: number;
+	}[];
+	collectorDetails: Map<
+		string,
+		{
+			peers: PeersDataEntry[];
+			fullFeedPeers: PeersDataEntry[];
+			uniqueAsns: Set<number>;
+			uniqueCountries: Set<string>;
+		}
+	>;
+	availableCollectorsCount: number;
 } {
-     // Filter peers by IP family and project
-     const filteredPeers = peersData.filter((peer) => {
-          // IP family filter
-          if (ipFamily === "ipv4" && peer.num_v4_pfxs === 0) return false;
-          if (ipFamily === "ipv6" && peer.num_v6_pfxs === 0) return false;
-          // Project filter (for non-balanced modes)
-          if (project === "rv" && isRipeRis(peer.collector)) return false;
-          if (project === "ris" && !isRipeRis(peer.collector)) return false;
-          return true;
-     });
+	// Filter peers by IP family and project (same logic as chart and stats)
+	const filteredPeers = peersData.filter((peer) => {
+		// IP family filter
+		if (ipFamily === "ipv4" && peer.num_v4_pfxs === 0) return false;
+		if (ipFamily === "ipv6" && peer.num_v6_pfxs === 0) return false;
+		// Project filter (for non-balanced modes)
+		if (project === "rv" && isRipeRis(peer.collector)) return false;
+		if (project === "ris" && !isRipeRis(peer.collector)) return false;
+		return true;
+	});
 
-     // Group peers by collector
-     const collectorPeers = new Map<string, PeersDataEntry[]>();
-     for (const peer of filteredPeers) {
-          const existing = collectorPeers.get(peer.collector) || [];
-          existing.push(peer);
-          collectorPeers.set(peer.collector, existing);
-     }
+	// Group peers by collector
+	const collectorPeers = new Map<string, PeersDataEntry[]>();
+	for (const peer of filteredPeers) {
+		const existing = collectorPeers.get(peer.collector) || [];
+		existing.push(peer);
+		collectorPeers.set(peer.collector, existing);
+	}
 
-     // Calculate coverage for each collector (only full-feed peers)
-     const collectorDetails = new Map<
-          string,
-          {
-               peers: PeersDataEntry[];
-               fullFeedPeers: PeersDataEntry[];
-               uniqueAsns: Set<number>;
-               uniqueCountries: Set<string>;
-          }
-     >();
+	const availableCollectorsCount = collectorPeers.size;
 
-     for (const [collector, peers] of collectorPeers) {
-          const fullFeedPeers = peers.filter(isFullFeed);
-          const uniqueAsns = new Set(fullFeedPeers.map((p) => p.asn));
-          const uniqueCountries = new Set<string>();
+	// Calculate coverage for each collector (only full-feed peers)
+	const collectorDetails = new Map<
+		string,
+		{
+			peers: PeersDataEntry[];
+			fullFeedPeers: PeersDataEntry[];
+			uniqueAsns: Set<number>;
+			uniqueCountries: Set<string>;
+		}
+	>();
 
-          for (const peer of fullFeedPeers) {
-               const info = asnData.get(peer.asn);
-               if (info?.country) {
-                    uniqueCountries.add(info.country);
-               }
-          }
+	for (const [collector, peers] of collectorPeers) {
+		const fullFeedPeers = peers.filter(isFullFeed);
+		const uniqueAsns = new Set(fullFeedPeers.map((p) => p.asn));
+		const uniqueCountries = new Set<string>();
 
-          collectorDetails.set(collector, {
-               peers,
-               fullFeedPeers,
-               uniqueAsns,
-               uniqueCountries,
-          });
-     }
+		for (const peer of fullFeedPeers) {
+			const info = asnData.get(peer.asn);
+			if (info?.country) {
+				uniqueCountries.add(info.country);
+			}
+		}
 
-     // Greedy selection
-     const selectedCollectors: string[] = [];
-     const coveredItems = new Set<string | number>();
-     const coverageByStep: {
-          collector: string;
-          newCoverage: number;
-          cumulativeCoverage: number;
-     }[] = [];
+		collectorDetails.set(collector, {
+			peers,
+			fullFeedPeers,
+			uniqueAsns,
+			uniqueCountries,
+		});
+	}
 
-     // Track counts for balanced mode
-     let rvCount = 0;
-     let risCount = 0;
+	// Greedy selection
+	const selectedCollectors: string[] = [];
+	const coveredItems = new Set<string | number>();
+	const coverageByStep: {
+		collector: string;
+		newCoverage: number;
+		cumulativeCoverage: number;
+	}[] = [];
 
-     while (selectedCollectors.length < maxCollectors) {
-          let bestCollector: string | null = null;
-          let bestNewCoverage = 0;
-          let bestItems: Set<string | number> = new Set();
-          let bestIsRis = false;
+	// Track counts for balanced mode
+	let rvCount = 0;
+	let risCount = 0;
 
-          for (const [collector, details] of collectorDetails) {
-               if (selectedCollectors.includes(collector)) continue;
+	while (selectedCollectors.length < maxCollectors) {
+		let bestCollector: string | null = null;
+		let bestNewCoverage = 0;
+		let bestItems: Set<string | number> = new Set();
+		let bestIsRis = false;
 
-               const isRisCollector = isRipeRis(collector);
+		for (const [collector, details] of collectorDetails) {
+			if (selectedCollectors.includes(collector)) continue;
 
-               // For balanced mode, enforce 50/50 split
-               if (project === "balanced") {
-                    const targetRv = Math.ceil(maxCollectors / 2);
-                    const targetRis = Math.floor(maxCollectors / 2);
+			const isRisCollector = isRipeRis(collector);
 
-                    if (isRisCollector && risCount >= targetRis) continue;
-                    if (!isRisCollector && rvCount >= targetRv) continue;
-               }
+			// For balanced mode, enforce 50/50 split
+			if (project === "balanced") {
+				const targetRv = Math.ceil(maxCollectors / 2);
+				const targetRis = Math.floor(maxCollectors / 2);
 
-               const items =
-                    goal === "asns" ? details.uniqueAsns : details.uniqueCountries;
-               const newItems = new Set<string | number>();
+				if (isRisCollector && risCount >= targetRis) continue;
+				if (!isRisCollector && rvCount >= targetRv) continue;
+			}
 
-               for (const item of items) {
-                    if (!coveredItems.has(item)) {
-                         newItems.add(item);
-                    }
-               }
+			const items =
+				goal === "asns" ? details.uniqueAsns : details.uniqueCountries;
+			const newItems = new Set<string | number>();
 
-               if (newItems.size > bestNewCoverage) {
-                    bestNewCoverage = newItems.size;
-                    bestCollector = collector;
-                    bestItems = newItems;
-                    bestIsRis = isRisCollector;
-               }
-          }
+			for (const item of items) {
+				if (!coveredItems.has(item)) {
+					newItems.add(item);
+				}
+			}
 
-          if (bestCollector === null || bestNewCoverage === 0) {
-               break;
-          }
+			if (newItems.size > bestNewCoverage) {
+				bestNewCoverage = newItems.size;
+				bestCollector = collector;
+				bestItems = newItems;
+				bestIsRis = isRisCollector;
+			}
+		}
 
-          selectedCollectors.push(bestCollector);
-          for (const item of bestItems) {
-               coveredItems.add(item);
-          }
+		if (bestCollector === null || bestNewCoverage === 0) {
+			break;
+		}
 
-          if (bestIsRis) {
-               risCount++;
-          } else {
-               rvCount++;
-          }
+		selectedCollectors.push(bestCollector);
+		for (const item of bestItems) {
+			coveredItems.add(item);
+		}
 
-          coverageByStep.push({
-               collector: bestCollector,
-               newCoverage: bestNewCoverage,
-               cumulativeCoverage: coveredItems.size,
-          });
-     }
+		if (bestIsRis) {
+			risCount++;
+		} else {
+			rvCount++;
+		}
 
-     return {
-          selectedCollectors,
-          totalCoverage: coveredItems.size,
-          coverageByStep,
-          collectorDetails,
-     };
+		coverageByStep.push({
+			collector: bestCollector,
+			newCoverage: bestNewCoverage,
+			cumulativeCoverage: coveredItems.size,
+		});
+	}
+
+	return {
+		selectedCollectors,
+		totalCoverage: coveredItems.size,
+		coverageByStep,
+		collectorDetails,
+		availableCollectorsCount,
+	};
 }
 
-// Calculate coverage curve data for chart visualization
-// Returns data points for different max collector values
-export function calculateCoverageCurve(
-     peersData: PeersDataEntry[],
-     asnInfoMap: Map<number, AsnInfo>,
-     ipFamily: "all" | "ipv4" | "ipv6",
-     project: "any" | "rv" | "ris" | "balanced" = "any",
-     maxCollectors: number = 20,
-): {
-     labels: number[];
-     asnCounts: number[];
-     countryCounts: number[];
-} {
-     const labels: number[] = [];
-     const asnCounts: number[] = [];
-     const countryCounts: number[] = [];
+	// Calculate coverage curve data for chart visualization
+	// Runs the greedy algorithm twice: once optimizing for ASNs, once for countries
+	export function calculateCoverageCurve(
+		peersData: PeersDataEntry[],
+		asnInfoMap: Map<number, AsnInfo>,
+		ipFamily: "all" | "ipv4" | "ipv6",
+		project: "any" | "rv" | "ris" | "balanced" = "any",
+		maxCollectors: number = 81,
+	): {
+		labels: number[];
+		asnCoverage: { counts: number[]; percents: number[] };
+		countryCoverage: { counts: number[]; percents: number[] };
+	} {
+		// Calculate baseline totals from ALL collectors (ignoring project filter)
+		// Use ASNs with at least one full-feed peer for percentage calculation
+		const baselinePeers = peersData.filter((peer) => {
+			if (ipFamily === "ipv4" && peer.num_v4_pfxs === 0) return false;
+			if (ipFamily === "ipv6" && peer.num_v6_pfxs === 0) return false;
+			return true;
+		});
 
-     for (let i = 1; i <= maxCollectors; i++) {
-          const result = calculateGreedyCoverage(
-               peersData,
-               asnInfoMap,
-               "asns", // Calculate both regardless of goal
-               ipFamily,
-               project,
-               i,
-          );
+		const baselineFullFeedPeers = baselinePeers.filter(isFullFeed);
+		const baselineAsns = new Set(baselineFullFeedPeers.map((p) => p.asn));
+		const baselineCountries = new Set<string>();
 
-          // Count actual unique ASNs and countries from selected collectors
-          const selectedAsns = new Set<number>();
-          const selectedCountries = new Set<string>();
+		for (const peer of baselineFullFeedPeers) {
+			const info = asnInfoMap.get(peer.asn);
+			if (info?.country) {
+				baselineCountries.add(info.country);
+			}
+		}
 
-          for (const collector of result.selectedCollectors) {
-               const details = result.collectorDetails.get(collector);
-               if (details) {
-                    for (const asn of details.uniqueAsns) {
-                         selectedAsns.add(asn);
-                    }
-                    for (const country of details.uniqueCountries) {
-                         selectedCountries.add(country);
-                    }
-               }
-          }
+		const totalBaselineAsns = baselineAsns.size;
+		const totalBaselineCountries = baselineCountries.size;
 
-          labels.push(i);
-          asnCounts.push(selectedAsns.size);
-          countryCounts.push(selectedCountries.size);
-     }
+		// Filter peers by IP family and project (same logic as greedy algorithm)
+		const filteredPeers = peersData.filter((peer) => {
+			if (ipFamily === "ipv4" && peer.num_v4_pfxs === 0) return false;
+			if (ipFamily === "ipv6" && peer.num_v6_pfxs === 0) return false;
+			if (project === "rv" && isRipeRis(peer.collector)) return false;
+			if (project === "ris" && !isRipeRis(peer.collector)) return false;
+			return true;
+		});
 
-     return { labels, asnCounts, countryCounts };
+		// Get available collectors (same logic as greedy algorithm)
+		const availableCollectors = new Set(filteredPeers.map((p) => p.collector));
+		const totalAvailableCollectors = availableCollectors.size;
+
+		const labels: number[] = [];
+		const asnCounts: number[] = [];
+		const asnPercents: number[] = [];
+		const countryCounts: number[] = [];
+		const countryPercents: number[] = [];
+
+		for (let i = 1; i <= maxCollectors; i++) {
+			const effectiveMax = Math.min(i, totalAvailableCollectors);
+
+			// Run greedy algorithm optimized for ASNs
+			const asnResult = calculateGreedyCoverage(
+				peersData,
+				asnInfoMap,
+				"asns",
+				ipFamily,
+				project,
+				effectiveMax,
+			);
+
+			// Run greedy algorithm optimized for countries
+			const countryResult = calculateGreedyCoverage(
+				peersData,
+				asnInfoMap,
+				"countries",
+				ipFamily,
+				project,
+				effectiveMax,
+			);
+
+			// Count unique ASNs from ASN-optimized selection
+			const selectedAsns = new Set<number>();
+			for (const collector of asnResult.selectedCollectors) {
+				const details = asnResult.collectorDetails.get(collector);
+				if (details) {
+					for (const asn of details.uniqueAsns) {
+						selectedAsns.add(asn);
+					}
+				}
+			}
+
+			// Count unique countries from country-optimized selection
+			const selectedCountries = new Set<string>();
+			for (const collector of countryResult.selectedCollectors) {
+				const details = countryResult.collectorDetails.get(collector);
+				if (details) {
+					for (const country of details.uniqueCountries) {
+						selectedCountries.add(country);
+					}
+				}
+			}
+
+			labels.push(i);
+			asnCounts.push(selectedAsns.size);
+			asnPercents.push(totalBaselineAsns > 0 ? Math.round((selectedAsns.size / totalBaselineAsns) * 100) : 0);
+			countryCounts.push(selectedCountries.size);
+			countryPercents.push(totalBaselineCountries > 0 ? Math.round((selectedCountries.size / totalBaselineCountries) * 100) : 0);
+		}
+
+		return {
+			labels,
+			asnCoverage: { counts: asnCounts, percents: asnPercents },
+			countryCoverage: { counts: countryCounts, percents: countryPercents },
+		};
+	}
+
+// Debug function to analyze coverage issues
+export function debugCoverageAnalysis(
+	peersData: PeersDataEntry[],
+	asnData: Map<number, AsnInfo>,
+	maxCollectors: number = 10
+) {
+	console.log("=== Debug Coverage Analysis ===\n");
+
+	const isFullFeedPeer = (peer: PeersDataEntry) =>
+		(peer.num_v4_pfxs > 700_000) || (peer.num_v6_pfxs > 100_000);
+
+	const collectors = new Set<string>();
+	const risCollectors = new Set<string>();
+	const rvCollectors = new Set<string>();
+	const fullFeedPeers = peersData.filter(isFullFeedPeer);
+
+	for (const peer of fullFeedPeers) {
+		collectors.add(peer.collector);
+		if (isRipeRis(peer.collector)) {
+			risCollectors.add(peer.collector);
+		} else {
+			rvCollectors.add(peer.collector);
+		}
+	}
+
+	console.log(`Total collectors with full-feed peers: ${collectors.size}`);
+	console.log(`RIS collectors: ${risCollectors.size}`);
+	console.log(`RouteViews collectors: ${rvCollectors.size}`);
+
+	const allAsns = new Set<number>();
+	const risAsns = new Set<number>();
+	const rvAsns = new Set<number>();
+
+	for (const peer of fullFeedPeers) {
+		allAsns.add(peer.asn);
+		if (isRipeRis(peer.collector)) {
+			risAsns.add(peer.asn);
+		} else {
+			rvAsns.add(peer.asn);
+		}
+	}
+
+	console.log(`\nTotal unique ASNs (full-feed): ${allAsns.size}`);
+	console.log(`RIS-only ASNs: ${risAsns.size}`);
+	console.log(`RV-only ASNs: ${rvAsns.size}`);
+
+	const intersection = new Set([...risAsns].filter(x => rvAsns.has(x)));
+	console.log(`Overlapping ASNs: ${intersection.size}`);
+
+	console.log("\n=== Greedy Algorithm Test ===");
+
+	const risResult = calculateGreedyCoverage(peersData, asnData, "asns", "all", "ris", maxCollectors);
+	const anyResult = calculateGreedyCoverage(peersData, asnData, "asns", "all", "any", maxCollectors);
+
+	const risPercent = Math.round((risResult.totalCoverage / allAsns.size) * 100);
+	const anyPercent = Math.round((anyResult.totalCoverage / allAsns.size) * 100);
+
+	console.log(`\nCoverage (of all ASNs):`);
+	console.log(`  RIS-only: ${risResult.totalCoverage} ASNs (${risPercent}%)`);
+	console.log(`  Any:      ${anyResult.totalCoverage} ASNs (${anyPercent}%)`);
+
+	console.log("\n=== Selected Collectors ===");
+	console.log("RIS-only:", risResult.selectedCollectors);
+	console.log("Any:", anyResult.selectedCollectors);
+
+	return { risCoverage: risResult.totalCoverage, anyCoverage: anyResult.totalCoverage };
 }
