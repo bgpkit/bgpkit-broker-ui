@@ -7,6 +7,7 @@
         BrokerDataEntry,
         PeersData,
         AsnInfo,
+        CollectorInfo,
         ProjectFilter,
         DataTypeFilter,
         StatusFilter,
@@ -18,6 +19,7 @@
         buildCollectorSummary,
         sortCollectors,
         getCollectorStatus,
+        countryToFlag,
     } from "../common";
     import FilterBar from "../components/FilterBar.svelte";
     import CollectorModal from "../components/CollectorModal.svelte";
@@ -28,6 +30,7 @@
         brokerData,
         peersData,
         asnData,
+        collectorsData,
         isActive = true,
         onNavigateToPeers,
         onNavigateToCountry,
@@ -35,6 +38,7 @@
         brokerData: BrokerData;
         peersData: PeersData;
         asnData: Map<number, AsnInfo>;
+        collectorsData: CollectorInfo[];
         isActive?: boolean;
         onNavigateToPeers?: (collector: string) => void;
         onNavigateToCountry?: (country: string) => void;
@@ -363,6 +367,14 @@
         if (group.updates) count++;
         return count || 1;
     }
+
+    function getCollectorFlag(collectorId: string): string {
+        const info = collectorsData?.find(c => c.name === collectorId);
+        if (info?.country) {
+            return countryToFlag(info.country);
+        }
+        return '';
+    }
 </script>
 
 {#if brokerData === undefined}
@@ -409,6 +421,7 @@
                     {#each dataEntries as entry, idx}
                         <tr class="hover:bg-base-200">
                             {#if idx === 0}
+                                {@const flag = getCollectorFlag(group.collector_id)}
                                 <th
                                     class="bg-base-100 align-middle border border-base-300 w-36"
                                     rowspan={rowCount}
@@ -419,8 +432,10 @@
                                             openCollectorModal(
                                                 group.collector_id,
                                             )}
-                                        title="Click to view collector details"
                                     >
+                                        {#if flag}
+                                            <span class="text-lg">{flag}</span>
+                                        {/if}
                                         <span>{group.collector_id}</span>
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"

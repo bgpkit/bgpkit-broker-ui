@@ -16,6 +16,7 @@
 
     let brokerData = $derived(data.brokerData);
     let peersData = $derived(data.peersData);
+    let collectorsData = $derived(data.collectorsData);
 
     // ASN data state - loaded progressively on client
     let asnData = $state<Map<number, AsnInfo>>(new Map());
@@ -272,6 +273,7 @@
                     {brokerData}
                     {peersData}
                     {asnData}
+                    {collectorsData}
                     isActive={activeTab === 0}
                     onNavigateToPeers={handleNavigateToPeers}
                     onNavigateToCountry={handleNavigateToCountry}

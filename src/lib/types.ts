@@ -20,6 +20,13 @@ export interface BrokerData {
   };
 }
 
+export interface CollectorInfo {
+  name: string;
+  country: string;
+  project: string;
+  active?: boolean;
+}
+
 export interface PeersData {
   count: number;
   last_updated_at: string;
@@ -40,6 +47,7 @@ export interface CombinedData {
   brokerData: BrokerData;
   peersData: PeersData;
   asnData: Map<number, AsnInfo>;
+  collectorsData: CollectorInfo[];
 }
 
 // ASN Information types
