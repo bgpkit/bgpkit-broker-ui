@@ -51,32 +51,64 @@
         return `${y}-${m}-${d}T00:00:00Z`;
     }
 
-    // Convert RFC3339 → datetime-local value ("YYYY-MM-DDTHH:MM")
-    function toPickerValue(rfc: string): string {
+    // RFC3339 → "YYYY-MM-DD" for date input
+    function toDateValue(rfc: string): string {
         if (!rfc) return "";
-        return rfc.replace("Z", "").substring(0, 16).replace(" ", "T");
+        return rfc.substring(0, 10);
     }
 
-    // Convert datetime-local value → RFC3339 ("YYYY-MM-DDTHH:MM:00Z")
-    function fromPickerValue(v: string): string {
-        if (!v) return "";
-        const base = v.length === 16 ? v + ":00" : v;
-        return base + "Z";
+    // RFC3339 → "HH:MM" for time input
+    function toTimeValue(rfc: string): string {
+        if (!rfc) return "";
+        return rfc.substring(11, 16);
     }
 
-    function handleStartPicker(e: Event) {
-        const v = (e.target as HTMLInputElement).value;
-        tsStart = fromPickerValue(v);
-        // Push end time forward if it's now before start
-        if (tsEnd && tsEnd < tsStart) {
-            tsEnd = tsStart;
-        }
+    // date ("YYYY-MM-DD") + time ("HH:MM") → RFC3339
+    function fromDateTimeValues(date: string, time: string): string {
+        if (!date) return "";
+        return `${date}T${time || "00:00"}:00Z`;
     }
 
-    function handleEndPicker(e: Event) {
-        const v = (e.target as HTMLInputElement).value;
-        tsEnd = fromPickerValue(v);
+    function handleStartDate(e: Event) {
+        const date = (e.target as HTMLInputElement).value;
+        const time = toTimeValue(tsStart) || "00:00";
+        tsStart = fromDateTimeValues(date, time);
+        if (tsEnd && tsEnd < tsStart) tsEnd = tsStart;
     }
+
+    function handleStartTime(e: Event) {
+        const time = (e.target as HTMLInputElement).value;
+        const date = toDateValue(tsStart) || toDateValue(todayUtcRfc3339());
+        tsStart = fromDateTimeValues(date, time);
+        if (tsEnd && tsEnd < tsStart) tsEnd = tsStart;
+    }
+
+    function handleEndDate(e: Event) {
+        const date = (e.target as HTMLInputElement).value;
+        const time = toTimeValue(tsEnd) || "00:00";
+        tsEnd = fromDateTimeValues(date, time);
+    }
+
+    function handleEndTime(e: Event) {
+        const raw = (e.target as HTMLInputElement).value;
+        const time = normaliseTime(raw);
+        const date = toDateValue(tsEnd) || toDateValue(tsStart) || toDateValue(todayUtcRfc3339());
+        if (time) tsEnd = fromDateTimeValues(date, time);
+    }
+
+    // Validate / normalise a typed time string like "830", "8:30", "08:30" → "08:30"
+    function normaliseTime(raw: string): string {
+        const s = raw.replace(/[^\d:]/g, "");
+        const m = s.match(/^(\d{1,2}):?(\d{2})$/);
+        if (!m) return "";
+        const h = parseInt(m[1]);
+        const min = parseInt(m[2]);
+        if (h > 23 || min > 59) return "";
+        return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+    }
+
+    // End date min: start date
+    let endDateMin = $derived(toDateValue(tsStart));
 
     // Result state
     let results = $state<SearchResult | null>(null);
@@ -203,16 +235,24 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <!-- Start Time -->
             <div class="form-control">
-                <label class="label" for="ts-start-picker">
+                <label class="label">
                     <span class="label-text font-medium">Start Time (UTC)</span>
                 </label>
-                <input
-                    id="ts-start-picker"
-                    type="datetime-local"
-                    class="input input-bordered input-sm"
-                    value={toPickerValue(tsStart)}
-                    onchange={handleStartPicker}
-                />
+                <div class="flex gap-1">
+                    <input
+                        type="date"
+                        class="input input-bordered input-sm flex-1"
+                        value={toDateValue(tsStart)}
+                        onchange={handleStartDate}
+                    />
+                    <input
+                        type="text"
+                        class="input input-bordered input-sm w-24 font-mono"
+                        placeholder="HH:MM"
+                        value={toTimeValue(tsStart)}
+                        onchange={handleStartTime}
+                    />
+                </div>
                 {#if tsStart}
                     <span class="text-xs font-mono text-base-content/50 mt-1 pl-1">{tsStart}</span>
                 {/if}
@@ -220,17 +260,25 @@
 
             <!-- End Time -->
             <div class="form-control">
-                <label class="label" for="ts-end-picker">
+                <label class="label">
                     <span class="label-text font-medium">End Time (UTC)</span>
                 </label>
-                <input
-                    id="ts-end-picker"
-                    type="datetime-local"
-                    class="input input-bordered input-sm"
-                    value={toPickerValue(tsEnd)}
-                    min={toPickerValue(tsStart)}
-                    onchange={handleEndPicker}
-                />
+                <div class="flex gap-1">
+                    <input
+                        type="date"
+                        class="input input-bordered input-sm flex-1"
+                        value={toDateValue(tsEnd)}
+                        min={endDateMin}
+                        onchange={handleEndDate}
+                    />
+                    <input
+                        type="text"
+                        class="input input-bordered input-sm w-24 font-mono"
+                        placeholder="HH:MM"
+                        value={toTimeValue(tsEnd)}
+                        onchange={handleEndTime}
+                    />
+                </div>
                 {#if tsEnd}
                     <span class="text-xs font-mono text-base-content/50 mt-1 pl-1">{tsEnd}</span>
                 {/if}
