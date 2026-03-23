@@ -5,7 +5,8 @@
 }
 
 @theme {
-  --font-sans: Roboto, sans-serif;
+  --font-sans: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
 }
 
 /*

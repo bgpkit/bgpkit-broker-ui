@@ -33,6 +33,8 @@ export const FULL_FEED_V6_THRESHOLD = 100_000;
 
 export const ASN_CACHE_MAX_SIZE = 10000;
 export const ASN_CACHE_TTL_MS = 60 * 60 * 1000;
+export const ASN_LOCALSTORAGE_KEY = "bgpkit-asn-cache";
+export const ASN_LOCALSTORAGE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export const ASN_BATCH_SIZE = 1000;
 export const ASN_CONCURRENCY_LIMIT = 3;
@@ -276,6 +278,45 @@ interface CachedAsnInfo {
 const asnCache = new Map<number, CachedAsnInfo>();
 const pendingRequests = new Map<number, Promise<AsnInfo | null>>();
 
+// Load persisted ASN cache from localStorage (browser only)
+function loadAsnCacheFromStorage(): void {
+      if (typeof window === "undefined") return; // SSR guard
+      if (typeof localStorage === "undefined") return;
+      try {
+            const raw = localStorage.getItem(ASN_LOCALSTORAGE_KEY);
+            if (!raw) return;
+            const parsed: { savedAt: number; entries: [number, CachedAsnInfo][] } = JSON.parse(raw);
+            if (Date.now() - parsed.savedAt > ASN_LOCALSTORAGE_TTL_MS) {
+                  localStorage.removeItem(ASN_LOCALSTORAGE_KEY);
+                  return;
+            }
+            const now = Date.now();
+            for (const [asn, entry] of parsed.entries) {
+                  // Only restore entries that are still within in-memory TTL
+                  if (now - entry.timestamp < ASN_CACHE_TTL_MS) {
+                        asnCache.set(asn, entry);
+                  }
+            }
+            console.log(`[ASN Cache] Restored ${asnCache.size} entries from localStorage`);
+      } catch {
+            localStorage.removeItem(ASN_LOCALSTORAGE_KEY);
+      }
+}
+
+function saveAsnCacheToStorage(): void {
+      if (typeof window === "undefined") return;
+      if (typeof localStorage === "undefined") return;
+      try {
+            const entries = Array.from(asnCache.entries());
+            localStorage.setItem(ASN_LOCALSTORAGE_KEY, JSON.stringify({ savedAt: Date.now(), entries }));
+      } catch {
+            // Ignore storage quota errors
+      }
+}
+
+// Hydrate in-memory cache from localStorage on module load
+loadAsnCacheFromStorage();
+
 function cleanupCache(): void {
       const now = Date.now();
       const entriesToRemove: number[] = [];
@@ -473,6 +514,11 @@ export async function fetchAsnInfoBatch(
      console.log(
           `[ASN Batch] Completed: ${result.size}/${asns.length} ASNs loaded in ${totalDuration.toFixed(1)}ms (${uncachedAsns.length} from API, ${cachedCount} cached)`,
      );
+
+     // Persist updated cache to localStorage for reuse across page reloads
+     if (uncachedAsns.length > 0) {
+          saveAsnCacheToStorage();
+     }
 
      return result;
 }

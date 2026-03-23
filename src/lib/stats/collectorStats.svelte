@@ -18,7 +18,7 @@
     });
 </script>
 
-<div class="stats shadow-lg w-full sm:flex-1">
+<div class="stats shadow-lg w-full sm:flex-1 border-l-4 border-primary">
     {#if countRv + countRis === 0}
         <span class="loading loading-dots loading-lg"></span>
     {:else}

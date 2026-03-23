@@ -21,13 +21,16 @@
   <meta name="twitter:title" content="BGPKIT Broker Status">
   <meta name="twitter:description" content="Real-time monitoring of BGP route collectors including RIPE RIS and RouteViews.">
   
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 </svelte:head>
 
 
 <style>
     :global(html) {
-      font-family: 'Roboto', sans-serif;
+      font-family: 'IBM Plex Sans', sans-serif;
+    }
+    :global(.font-mono), :global(code), :global(pre) {
+      font-family: 'IBM Plex Mono', monospace;
     }
 </style>
 

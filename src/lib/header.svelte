@@ -20,7 +20,7 @@
 		</a>
 		<div class="text-center sm:text-left">
 			<h1 class="text-2xl sm:text-3xl lg:text-4xl">BGPKIT Broker Status</h1>
-			<p class="text-sm sm:text-base lg:text-xl">
+			<p class="text-sm sm:text-base text-base-content/60">
 				Last updated: {duration(diff / 1000, "seconds").humanize()} ago
 				(UTC {last_updated_ts}Z)
 			</p>

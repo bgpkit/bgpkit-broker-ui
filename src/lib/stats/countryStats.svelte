@@ -54,7 +54,7 @@
     );
 </script>
 
-<div class="stats shadow-lg w-full sm:flex-1">
+<div class="stats shadow-lg w-full sm:flex-1 border-l-4 border-secondary">
     {#if isLoading}
         <div class="stat py-3 sm:py-4">
             <div class="stat-title text-xs sm:text-sm">Peer AS Country/Region</div>

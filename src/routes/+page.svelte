@@ -7,6 +7,7 @@
     import PeersStats from "$lib/stats/peersStats.svelte";
     import CountryStats from "$lib/stats/countryStats.svelte";
     import CollectorSelector from "$lib/components/CollectorSelector.svelte";
+    import MrtSearch from "$lib/tables/MrtSearch.svelte";
     import type { AsnInfo } from "$lib/types";
     import { fetchAsnInfoBatch } from "$lib/common";
     import { browser } from "$app/environment";
@@ -23,7 +24,7 @@
     let asnLoading = $state(true);
     let asnLoadProgress = $state({ loaded: 0, total: 0 });
 
-    // Tab state - 0 = Route Collectors, 1 = Collector Peers, 2 = Collector Selector
+    // Tab state - 0 = Route Collectors, 1 = Collector Peers, 2 = Collector Selector, 3 = MRT Search
     let activeTab = $state(0);
     let urlTabInitialized = $state(false);
 
@@ -35,7 +36,9 @@
         const tabParam = url.searchParams.get("tab");
         let newTab = 0;
 
-        if (tabParam === "selector") {
+        if (tabParam === "search") {
+            newTab = 3;
+        } else if (tabParam === "selector") {
             newTab = 2;
         } else if (
             tabParam === "peers" ||
@@ -61,15 +64,40 @@
         
         if (activeTab === 1) {
             newTab = "peers";
-            // Clear collector-specific filters when switching to peers tab
             url.searchParams.delete("search");
             url.searchParams.delete("dataType");
             url.searchParams.delete("status");
             url.searchParams.delete("showDeprecated");
             url.searchParams.delete("collectorModal");
+            url.searchParams.delete("mrt_ts_start");
+            url.searchParams.delete("mrt_ts_end");
+            url.searchParams.delete("mrt_project");
+            url.searchParams.delete("mrt_collector");
+            url.searchParams.delete("mrt_data_type");
         } else if (activeTab === 2) {
             newTab = "selector";
-            // Clear all filters when switching to selector tab
+            peersCollectorFilter = null;
+            peersCountryFilter = null;
+            url.searchParams.delete("collector");
+            url.searchParams.delete("country");
+            url.searchParams.delete("project");
+            url.searchParams.delete("ip");
+            url.searchParams.delete("feed");
+            url.searchParams.delete("q");
+            url.searchParams.delete("search");
+            url.searchParams.delete("dataType");
+            url.searchParams.delete("status");
+            url.searchParams.delete("showDeprecated");
+            url.searchParams.delete("asnModal");
+            url.searchParams.delete("countryModal");
+            url.searchParams.delete("collectorModal");
+            url.searchParams.delete("mrt_ts_start");
+            url.searchParams.delete("mrt_ts_end");
+            url.searchParams.delete("mrt_project");
+            url.searchParams.delete("mrt_collector");
+            url.searchParams.delete("mrt_data_type");
+        } else if (activeTab === 3) {
+            newTab = "search";
             peersCollectorFilter = null;
             peersCountryFilter = null;
             url.searchParams.delete("collector");
@@ -86,7 +114,7 @@
             url.searchParams.delete("countryModal");
             url.searchParams.delete("collectorModal");
         } else {
-            // Clear peers-specific filters when switching to collectors tab
+            // Switching to collectors tab
             url.searchParams.delete("country");
             url.searchParams.delete("project");
             url.searchParams.delete("ip");
@@ -94,12 +122,15 @@
             url.searchParams.delete("q");
             url.searchParams.delete("collector");
             url.searchParams.delete("asnModal");
+            url.searchParams.delete("mrt_ts_start");
+            url.searchParams.delete("mrt_ts_end");
+            url.searchParams.delete("mrt_project");
+            url.searchParams.delete("mrt_collector");
+            url.searchParams.delete("mrt_data_type");
         }
         
-        if (currentTab !== newTab) {
-            url.searchParams.set("tab", newTab);
-            window.history.replaceState({}, "", url.toString());
-        }
+        url.searchParams.set("tab", newTab);
+        window.history.replaceState({}, "", url.toString());
     });
 
     // Collector filter for peers tab (set when navigating from collector modal)
@@ -186,35 +217,36 @@
             const url = new URL(window.location.href);
 
             if (tabIndex === 0) {
-                // Switching to collectors tab
                 url.searchParams.set("tab", "collectors");
-                // Remove peers-specific filters
                 url.searchParams.delete("country");
                 url.searchParams.delete("project");
                 url.searchParams.delete("ip");
                 url.searchParams.delete("feed");
                 url.searchParams.delete("q");
                 url.searchParams.delete("collector");
-                // Remove peers-specific modal params
                 url.searchParams.delete("asnModal");
+                url.searchParams.delete("mrt_ts_start");
+                url.searchParams.delete("mrt_ts_end");
+                url.searchParams.delete("mrt_project");
+                url.searchParams.delete("mrt_collector");
+                url.searchParams.delete("mrt_data_type");
             } else if (tabIndex === 1) {
-                // Switching to peers tab
                 url.searchParams.set("tab", "peers");
-                // Clear collector modal param
                 peersCollectorFilter = null;
                 peersCountryFilter = null;
                 url.searchParams.delete("collector");
-                // Remove collectors-specific filters
                 url.searchParams.delete("search");
                 url.searchParams.delete("dataType");
                 url.searchParams.delete("status");
                 url.searchParams.delete("showDeprecated");
-                // Remove collectors-specific modal params
                 url.searchParams.delete("collectorModal");
+                url.searchParams.delete("mrt_ts_start");
+                url.searchParams.delete("mrt_ts_end");
+                url.searchParams.delete("mrt_project");
+                url.searchParams.delete("mrt_collector");
+                url.searchParams.delete("mrt_data_type");
             } else if (tabIndex === 2) {
-                // Switching to collector selector tab
                 url.searchParams.set("tab", "selector");
-                // Clear other tab filters
                 peersCollectorFilter = null;
                 peersCountryFilter = null;
                 url.searchParams.delete("collector");
@@ -227,7 +259,28 @@
                 url.searchParams.delete("dataType");
                 url.searchParams.delete("status");
                 url.searchParams.delete("showDeprecated");
-                // Remove all modal params
+                url.searchParams.delete("asnModal");
+                url.searchParams.delete("countryModal");
+                url.searchParams.delete("collectorModal");
+                url.searchParams.delete("mrt_ts_start");
+                url.searchParams.delete("mrt_ts_end");
+                url.searchParams.delete("mrt_project");
+                url.searchParams.delete("mrt_collector");
+                url.searchParams.delete("mrt_data_type");
+            } else if (tabIndex === 3) {
+                url.searchParams.set("tab", "search");
+                peersCollectorFilter = null;
+                peersCountryFilter = null;
+                url.searchParams.delete("collector");
+                url.searchParams.delete("country");
+                url.searchParams.delete("project");
+                url.searchParams.delete("ip");
+                url.searchParams.delete("feed");
+                url.searchParams.delete("q");
+                url.searchParams.delete("search");
+                url.searchParams.delete("dataType");
+                url.searchParams.delete("status");
+                url.searchParams.delete("showDeprecated");
                 url.searchParams.delete("asnModal");
                 url.searchParams.delete("countryModal");
                 url.searchParams.delete("collectorModal");
@@ -247,7 +300,7 @@
         </div>
     {/if}
 
-    <div class="flex flex-wrap pt-8 px-auto gap-4">
+    <div class="grid grid-cols-2 lg:grid-cols-4 pt-8 gap-4">
         <CollectorStats {brokerData} />
         <OnTimeStats {brokerData} />
         <PeersStats {peersData} />
@@ -333,6 +386,31 @@
                     {brokerData}
                     {asnData}
                     isActive={activeTab === 2}
+                />
+            {:else}
+                <div class="flex justify-center py-8">
+                    <span class="loading loading-dots loading-lg"></span>
+                </div>
+            {/if}
+        </div>
+
+        <input
+            type="radio"
+            name="tab"
+            role="tab"
+            class="tab"
+            bind:group={activeTab}
+            value={3}
+            aria-label="MRT Search"
+        />
+        <div
+            role="tabpanel"
+            class="tab-content bg-base-100 border-base-300 rounded-box p-6"
+        >
+            {#if collectorsData}
+                <MrtSearch
+                    {collectorsData}
+                    isActive={activeTab === 3}
                 />
             {:else}
                 <div class="flex justify-center py-8">

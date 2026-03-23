@@ -456,7 +456,7 @@
                             {/if}
                             <td class="border border-base-300">
                                 <span
-                                    class="badge badge-ghost badge-sm text-xs"
+                                    class="badge badge-sm text-xs {entry.data_type === 'rib' ? 'badge-info' : 'badge-warning'}"
                                 >
                                     {entry.data_type}
                                 </span>
@@ -470,7 +470,7 @@
                                     ),
                                 )}
                             </td>
-                            <td class="border border-base-300"
+                            <td class="border border-base-300 whitespace-nowrap font-mono text-xs"
                                 >{entry.ts_start.replace("T", " ")}</td
                             >
                             <td class="border border-base-300"
