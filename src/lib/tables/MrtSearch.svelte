@@ -74,6 +74,7 @@
         const time = toTimeValue(tsStart) || "00:00";
         tsStart = fromDateTimeValues(date, time);
         if (tsEnd && tsEnd < tsStart) tsEnd = tsStart;
+        updateUrl();
     }
 
     function handleStartTime(e: Event) {
@@ -81,12 +82,14 @@
         const date = toDateValue(tsStart) || toDateValue(todayUtcRfc3339());
         tsStart = fromDateTimeValues(date, time);
         if (tsEnd && tsEnd < tsStart) tsEnd = tsStart;
+        updateUrl();
     }
 
     function handleEndDate(e: Event) {
         const date = (e.target as HTMLInputElement).value;
         const time = toTimeValue(tsEnd) || "00:00";
         tsEnd = fromDateTimeValues(date, time);
+        updateUrl();
     }
 
     function handleEndTime(e: Event) {
@@ -94,6 +97,7 @@
         const time = normaliseTime(raw);
         const date = toDateValue(tsEnd) || toDateValue(tsStart) || toDateValue(todayUtcRfc3339());
         if (time) tsEnd = fromDateTimeValues(date, time);
+        updateUrl();
     }
 
     // Validate / normalise a typed time string like "830", "8:30", "08:30" → "08:30"
@@ -117,55 +121,79 @@
     let error = $state<string | null>(null);
     let hasSearched = $state(false);
 
+    function isValidTimestamp(s: string): boolean {
+        if (!s) return false;
+        return !isNaN(new Date(s).getTime());
+    }
+
     // Track URL init
     let initializedFromUrl = $state(false);
 
     $effect(() => {
         if (!browser || !isActive || initializedFromUrl) return;
+        initializedFromUrl = true;
+
         const url = new URL(window.location.href);
+        let hadParams = false;
+        let allValid = true;
+        let urlChanged = false;
+
         const s = url.searchParams.get("mrt_ts_start");
-        if (s) tsStart = s;
+        if (s !== null) {
+            hadParams = true;
+            if (isValidTimestamp(s)) { tsStart = s; }
+            else { url.searchParams.delete("mrt_ts_start"); urlChanged = true; allValid = false; }
+        }
+
         const e = url.searchParams.get("mrt_ts_end");
-        if (e) tsEnd = e;
-        const p = url.searchParams.get("mrt_project") as ProjectFilter;
-        if (p && ["all", "routeviews", "riperis"].includes(p)) project = p;
+        if (e !== null) {
+            hadParams = true;
+            if (isValidTimestamp(e)) { tsEnd = e; }
+            else { url.searchParams.delete("mrt_ts_end"); urlChanged = true; allValid = false; }
+        }
+
+        const p = url.searchParams.get("mrt_project");
+        if (p !== null) {
+            hadParams = true;
+            if (["all", "routeviews", "riperis"].includes(p)) { project = p as ProjectFilter; }
+            else { url.searchParams.delete("mrt_project"); urlChanged = true; allValid = false; }
+        }
+
         const c = url.searchParams.get("mrt_collector");
-        if (c) collectorId = c;
-        const d = url.searchParams.get("mrt_data_type") as DataTypeFilter;
-        if (d && ["all", "rib", "updates"].includes(d)) dataType = d;
-        // Default to today 00:00:00Z if not set from URL
+        if (c !== null) {
+            hadParams = true;
+            if (collectorsData.some(col => col.name === c)) { collectorId = c; }
+            else { url.searchParams.delete("mrt_collector"); urlChanged = true; allValid = false; }
+        }
+
+        const d = url.searchParams.get("mrt_data_type");
+        if (d !== null) {
+            hadParams = true;
+            if (["all", "rib", "updates"].includes(d)) { dataType = d as DataTypeFilter; }
+            else { url.searchParams.delete("mrt_data_type"); urlChanged = true; allValid = false; }
+        }
+
         if (!tsStart) tsStart = todayUtcRfc3339();
         if (!tsEnd) tsEnd = todayUtcRfc3339();
-        initializedFromUrl = true;
+
+        if (urlChanged) window.history.replaceState({}, "", url.toString());
+
+        if (hadParams && allValid) search(1);
     });
 
-    $effect(() => {
-        if (!browser || !isActive || !initializedFromUrl) return;
+    function updateUrl() {
+        if (!browser) return;
         const url = new URL(window.location.href);
-        let changed = false;
-
-        const setOrDelete = (key: string, value: string, def: string) => {
-            if (value && value !== def) {
-                if (url.searchParams.get(key) !== value) {
-                    url.searchParams.set(key, value);
-                    changed = true;
-                }
-            } else if (url.searchParams.has(key)) {
-                url.searchParams.delete(key);
-                changed = true;
-            }
-        };
-
-        setOrDelete("mrt_ts_start", tsStart, "");
-        setOrDelete("mrt_ts_end", tsEnd, "");
-        setOrDelete("mrt_project", project, "all");
-        setOrDelete("mrt_collector", collectorId, "");
-        setOrDelete("mrt_data_type", dataType, "all");
-
-        if (changed) window.history.replaceState({}, "", url.toString());
-    });
+        if (tsStart) url.searchParams.set("mrt_ts_start", tsStart); else url.searchParams.delete("mrt_ts_start");
+        if (tsEnd) url.searchParams.set("mrt_ts_end", tsEnd); else url.searchParams.delete("mrt_ts_end");
+        if (project !== "all") url.searchParams.set("mrt_project", project); else url.searchParams.delete("mrt_project");
+        if (collectorId) url.searchParams.set("mrt_collector", collectorId); else url.searchParams.delete("mrt_collector");
+        if (dataType !== "all") url.searchParams.set("mrt_data_type", dataType); else url.searchParams.delete("mrt_data_type");
+        window.history.replaceState({}, "", url.toString());
+    }
 
     async function search(page = 1) {
+        updateUrl();
         loading = true;
         error = null;
         currentPage = page;
@@ -213,6 +241,11 @@
         results = null;
         hasSearched = false;
         error = null;
+        if (browser) {
+            const url = new URL(window.location.href);
+            ["mrt_ts_start", "mrt_ts_end", "mrt_project", "mrt_collector", "mrt_data_type"].forEach(k => url.searchParams.delete(k));
+            window.history.replaceState({}, "", url.toString());
+        }
     }
 
     function getCollectorFlag(id: string): string {

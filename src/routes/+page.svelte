@@ -25,41 +25,14 @@
     let asnLoadProgress = $state({ loaded: 0, total: 0 });
 
     // Tab state - 0 = Route Collectors, 1 = Collector Peers, 2 = Collector Selector, 3 = MRT Search
-    let activeTab = $state(0);
-    let urlTabInitialized = $state(false);
-
-    // Initialize tab state from URL on client mount
-    $effect(() => {
-        if (!browser || urlTabInitialized) return;
-
-        const url = new URL(window.location.href);
-        const tabParam = url.searchParams.get("tab");
-        let newTab = 0;
-
-        if (tabParam === "search") {
-            newTab = 3;
-        } else if (tabParam === "selector") {
-            newTab = 2;
-        } else if (
-            tabParam === "peers" ||
-            url.searchParams.has("asnModal") ||
-            (url.searchParams.has("countryModal") && tabParam !== "collectors")
-        ) {
-            newTab = 1;
-        }
-
-        if (newTab !== 0) {
-            activeTab = newTab;
-        }
-        urlTabInitialized = true;
-    });
+    let activeTab = $state(data.initialTab);
+    let urlTabInitialized = $state(true);
 
     // Update URL and cleanup when tab changes
     $effect(() => {
         if (!browser || !urlTabInitialized) return;
         
         const url = new URL(window.location.href);
-        const currentTab = url.searchParams.get("tab");
         let newTab = "collectors";
         
         if (activeTab === 1) {

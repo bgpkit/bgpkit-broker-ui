@@ -1,11 +1,12 @@
 import type { BrokerData, PeersData, AsnInfo, CollectorInfo } from "../lib/types";
 
 /** @type {import('./$types').PageLoad} */
-export async function load({ fetch }): Promise<{
+export async function load({ fetch, url }): Promise<{
   brokerData: BrokerData;
   peersData: PeersData;
   asnData: Map<number, AsnInfo>;
   collectorsData: CollectorInfo[];
+  initialTab: number;
 }> {
   // Fetch broker, peers, and collectors data in parallel
   const [brokerResponse, peersResponse, collectorsResponse] = await Promise.all([
@@ -19,6 +20,12 @@ export async function load({ fetch }): Promise<{
   const collectorsResponseJson: { data: CollectorInfo[] } = await collectorsResponse.json();
   const collectorsData: CollectorInfo[] = collectorsResponseJson.data || [];
 
+  const tabParam = url.searchParams.get("tab");
+  let initialTab = 0;
+  if (tabParam === "search") initialTab = 3;
+  else if (tabParam === "selector") initialTab = 2;
+  else if (tabParam === "peers" || url.searchParams.has("asnModal") || (url.searchParams.has("countryModal") && tabParam !== "collectors")) initialTab = 1;
+
   // Return empty ASN data - it will be loaded progressively on the client
   // This significantly improves initial page load time
   return {
@@ -26,5 +33,6 @@ export async function load({ fetch }): Promise<{
     peersData,
     asnData: new Map<number, AsnInfo>(),
     collectorsData,
+    initialTab,
   };
 }
