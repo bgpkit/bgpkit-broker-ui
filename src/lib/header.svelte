@@ -5,8 +5,8 @@
 
 	let { last_updated_ts }: { last_updated_ts: string } = $props();
 
-	const last_check_ts = new Date(`${last_updated_ts}Z`);
-	let diff = new Date().getTime() - last_check_ts.getTime();
+	let last_check_ts = $derived(new Date(`${last_updated_ts}Z`));
+	let diff = $derived(new Date().getTime() - last_check_ts.getTime());
 </script>
 
 <div class="flex flex-col sm:flex-row justify-between items-center gap-4">

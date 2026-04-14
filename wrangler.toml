@@ -1,0 +1,32 @@
+name = "bgpkit-broker-ui"
+main = ".svelte-kit/cloudflare/_worker.js"
+compatibility_date = "2026-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Static assets configuration (required for Workers Static Assets)
+[assets]
+directory = ".svelte-kit/cloudflare"
+binding = "ASSETS"
+
+# Workers build output directory
+[build]
+command = "npm run build"
+
+# Custom domain configuration
+[[routes]]
+pattern = "status.broker.bgpkit.com"
+custom_domain = true
+
+# Optional: Environment variables (use wrangler secret put for sensitive values)
+# [vars]
+# MY_VAR = "value"
+
+# KV namespace for ASN cache
+[[kv_namespaces]]
+binding = "ASN_CACHE"
+id = "ff3519d8943041a883eaa415f52afa99"
+
+# Optional: Durable Object binding
+# [[durable_objects.bindings]]
+# name = "MY_DURABLE_OBJECT"
+# class_name = "MyDurableObject"

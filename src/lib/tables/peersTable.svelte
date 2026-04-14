@@ -48,7 +48,9 @@
     let project = $state<ProjectFilter>("all");
     let ipVersion = $state<IpVersionFilter>("all");
     let fullFeed = $state<FullFeedFilter>("all");
+    // svelte-ignore state_referenced_locally
     let collectorFilter = $state(initialCollector || "");
+    // svelte-ignore state_referenced_locally
     let countryFilter = $state(initialCountry || "");
 
     // Sort state

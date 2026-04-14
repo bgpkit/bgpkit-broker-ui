@@ -9,7 +9,6 @@
     import CollectorSelector from "$lib/components/CollectorSelector.svelte";
     import MrtSearch from "$lib/tables/MrtSearch.svelte";
     import type { AsnInfo } from "$lib/types";
-    import { fetchAsnInfoBatch } from "$lib/common";
     import { browser } from "$app/environment";
 
     /** @type {import('./$types').PageData} */
@@ -19,12 +18,13 @@
     let peersData = $derived(data.peersData);
     let collectorsData = $derived(data.collectorsData);
 
-    // ASN data state - loaded progressively on client
-    let asnData = $state<Map<number, AsnInfo>>(new Map());
-    let asnLoading = $state(true);
-    let asnLoadProgress = $state({ loaded: 0, total: 0 });
+    // ASN data - now loaded server-side with KV caching
+    let asnData = $derived(data.asnData);
+    let asnLoading = $state(false);
+    let asnLoadProgress = $derived({ loaded: asnData.size, total: asnData.size });
 
     // Tab state - 0 = Route Collectors, 1 = Collector Peers, 2 = Collector Selector, 3 = MRT Search
+    // svelte-ignore state_referenced_locally
     let activeTab = $state(data.initialTab);
     let urlTabInitialized = $state(true);
 
@@ -159,28 +159,8 @@
         }
     }
 
-    // Load ASN data using optimized bulk API with POST endpoint
-    $effect(() => {
-        if (!peersData?.data) return;
-
-        const loadStartTime = performance.now();
-        const uniqueAsns = [...new Set(peersData.data.map((p) => p.asn))];
-        console.log(`[Page] Starting ASN load for ${uniqueAsns.length} unique ASNs...`);
-        asnLoadProgress = { loaded: 0, total: uniqueAsns.length };
-
-        // Use optimized batch fetch with POST endpoint
-        fetchAsnInfoBatch(uniqueAsns, (loaded, total) => {
-            asnLoadProgress = { loaded, total };
-        }).then((results) => {
-            asnData = results;
-            asnLoading = false;
-            const duration = performance.now() - loadStartTime;
-            console.log(`[Page] ASN loading complete: ${results.size} ASNs in ${duration.toFixed(1)}ms`);
-        }).catch((error) => {
-            console.error("[Page] Failed to load ASN data:", error);
-            asnLoading = false;
-        });
-    });
+    // ASN data is now loaded server-side with KV caching
+    // See +page.ts for the fetchAsnInfoBatch call
 
     function handleTabChange(tabIndex: number) {
         activeTab = tabIndex;

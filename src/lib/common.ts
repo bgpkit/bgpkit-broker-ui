@@ -446,81 +446,144 @@ export async function fetchAsnInfoPost(
 
 // Batch fetch ASN info using bulk API (for large sets of ASNs)
 // Fetches batches in parallel with concurrency limit for optimal performance
+// Generate MD5 hash of sorted ASN list for cache key
+async function generateAsnHash(asns: number[]): Promise<string> {
+	const sorted = [...asns].sort((a, b) => a - b);
+	const data = sorted.join(',');
+	const encoder = new TextEncoder();
+	const buffer = encoder.encode(data);
+	const hashBuffer = await crypto.subtle.digest('MD5', buffer);
+	const hashArray = Array.from(new Uint8Array(hashBuffer));
+	return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 export async function fetchAsnInfoBatch(
-      asns: number[],
-      onProgress?: (loaded: number, total: number) => void,
+	asns: number[],
+	onProgress?: (loaded: number, total: number) => void,
+	env?: { ASN_CACHE?: KVNamespace },
 ): Promise<Map<number, AsnInfo>> {
-      const startTime = performance.now();
-      const result = new Map<number, AsnInfo>();
-      const now = Date.now();
+	const startTime = performance.now();
+	const result = new Map<number, AsnInfo>();
+	const now = Date.now();
 
-      const uncachedAsns = asns.filter((asn) => {
-           const cached = asnCache.get(asn);
-           if (cached && now - cached.timestamp < ASN_CACHE_TTL_MS) {
-                result.set(asn, cached.data);
-                return false;
-           }
-           return true;
-      });
+	// Check KV cache first if available (Workers environment)
+	console.log('[ASN Batch] env check:', { hasEnv: !!env, hasAsnCache: !!(env?.ASN_CACHE), asnCount: asns.length });
+	if (env?.ASN_CACHE && asns.length > 0) {
+		const hash = await generateAsnHash(asns);
+		console.log(`[ASN Batch] Checking KV for hash: ${hash}`);
+		try {
+			const kvCached = await env.ASN_CACHE.get(hash);
+			console.log(`[ASN Batch] KV get result:`, { found: !!kvCached });
+			if (kvCached) {
+				const { results } = JSON.parse(kvCached);
+				const parsed = new Map<number, AsnInfo>(Object.entries(results).map(([k, v]) => [Number(k), v as AsnInfo]));
+				console.log(`[ASN Batch] KV cache hit: ${parsed.size} ASNs`);
+				return parsed;
+			}
+		} catch (e) {
+			console.error('[ASN Batch] KV read error:', e);
+		}
+	}
 
-      const cachedCount = asns.length - uncachedAsns.length;
-      if (cachedCount > 0) {
-           console.log(`[ASN Batch] Using ${cachedCount} cached ASNs`);
-      }
+	// Check in-memory cache
+	const uncachedAsns = asns.filter((asn) => {
+		const cached = asnCache.get(asn);
+		if (cached && now - cached.timestamp < ASN_CACHE_TTL_MS) {
+			result.set(asn, cached.data);
+			return false;
+		}
+		return true;
+	});
 
-      if (uncachedAsns.length === 0) {
-           return result;
-      }
+	const cachedCount = asns.length - uncachedAsns.length;
+	if (cachedCount > 0) {
+		console.log(`[ASN Batch] Using ${cachedCount} memory-cached ASNs`);
+	}
 
-      let loaded = result.size;
+	if (uncachedAsns.length === 0) {
+		// Store in KV if available (even if all from memory cache)
+		if (env?.ASN_CACHE && asns.length > 0) {
+			const hash = await generateAsnHash(asns);
+			try {
+				await env.ASN_CACHE.put(hash, JSON.stringify({
+					timestamp: Date.now(),
+					results: Object.fromEntries(result)
+				}), { expirationTtl: 86400 });
+				console.log(`[ASN Batch] Stored ${result.size} ASNs to KV`);
+			} catch (e) {
+				console.error('[ASN Batch] KV write error:', e);
+			}
+		}
+		return result;
+	}
 
-      // Create all batch promises
-      const batches: number[][] = [];
-      for (let i = 0; i < uncachedAsns.length; i += ASN_BATCH_SIZE) {
-           batches.push(uncachedAsns.slice(i, i + ASN_BATCH_SIZE));
-      }
+	let loaded = result.size;
 
-      console.log(
-           `[ASN Batch] Fetching ${uncachedAsns.length} ASNs in ${batches.length} parallel batches (concurrency: ${ASN_CONCURRENCY_LIMIT})...`,
-      );
+	// Create all batch promises
+	const batches: number[][] = [];
+	for (let i = 0; i < uncachedAsns.length; i += ASN_BATCH_SIZE) {
+		batches.push(uncachedAsns.slice(i, i + ASN_BATCH_SIZE));
+	}
 
-      // Process batches with concurrency limit
-      const processBatch = async (batch: number[], batchIndex: number) => {
-           const batchStart = performance.now();
-           const batchResults = await fetchAsnInfoPost(batch);
-           const batchDuration = performance.now() - batchStart;
+	console.log(
+		`[ASN Batch] Fetching ${uncachedAsns.length} ASNs in ${batches.length} parallel batches (concurrency: ${ASN_CONCURRENCY_LIMIT})...`,
+	);
 
-           batchResults.forEach((info, asn) => {
-                result.set(asn, info);
-           });
+	// Process batches with concurrency limit
+	const processBatch = async (batch: number[], batchIndex: number) => {
+		const batchStart = performance.now();
+		const batchResults = await fetchAsnInfoPost(batch);
+		const batchDuration = performance.now() - batchStart;
 
-           loaded += batch.length;
-           onProgress?.(loaded, asns.length);
+		batchResults.forEach((info, asn) => {
+			result.set(asn, info);
+		});
 
-           console.log(
-                `[ASN Batch] Batch ${batchIndex + 1}/${batches.length} completed in ${batchDuration.toFixed(1)}ms (${batchResults.size}/${batch.length} ASNs)`,
-           );
-      };
+		loaded += batch.length;
+		onProgress?.(loaded, asns.length);
 
-      // Execute with concurrency control
-      for (let i = 0; i < batches.length; i += ASN_CONCURRENCY_LIMIT) {
-           const currentBatches = batches.slice(i, i + ASN_CONCURRENCY_LIMIT);
-           await Promise.all(
-                currentBatches.map((batch, idx) => processBatch(batch, i + idx)),
-           );
-      }
+		console.log(
+			`[ASN Batch] Batch ${batchIndex + 1}/${batches.length} completed in ${batchDuration.toFixed(1)}ms (${batchResults.size}/${batch.length} ASNs)`,
+		);
+	};
 
-     const totalDuration = performance.now() - startTime;
-     console.log(
-          `[ASN Batch] Completed: ${result.size}/${asns.length} ASNs loaded in ${totalDuration.toFixed(1)}ms (${uncachedAsns.length} from API, ${cachedCount} cached)`,
-     );
+	// Execute with concurrency control
+	for (let i = 0; i < batches.length; i += ASN_CONCURRENCY_LIMIT) {
+		const currentBatches = batches.slice(i, i + ASN_CONCURRENCY_LIMIT);
+		await Promise.all(
+			currentBatches.map((batch, idx) => processBatch(batch, i + idx)),
+		);
+	}
 
-     // Persist updated cache to localStorage for reuse across page reloads
-     if (uncachedAsns.length > 0) {
-          saveAsnCacheToStorage();
-     }
+	const totalDuration = performance.now() - startTime;
+	console.log(
+		`[ASN Batch] Completed: ${result.size}/${asns.length} ASNs loaded in ${totalDuration.toFixed(1)}ms (${uncachedAsns.length} from API, ${cachedCount} cached)`,
+	);
 
-     return result;
+	// Persist updated cache to localStorage for reuse across page reloads
+	if (uncachedAsns.length > 0) {
+		saveAsnCacheToStorage();
+	}
+
+	// Store in KV if available
+	console.log('[ASN Batch] KV write check:', { hasEnv: !!env, hasAsnCache: !!(env?.ASN_CACHE), resultSize: result.size });
+	if (env?.ASN_CACHE && asns.length > 0) {
+		const hash = await generateAsnHash(asns);
+		console.log(`[ASN Batch] Writing to KV with hash: ${hash}, size: ${result.size}`);
+		try {
+			const value = JSON.stringify({
+				timestamp: Date.now(),
+				results: Object.fromEntries(result)
+			});
+			console.log(`[ASN Batch] KV put value length: ${value.length} bytes`);
+			await env.ASN_CACHE.put(hash, value, { expirationTtl: 86400 });
+			console.log(`[ASN Batch] Stored ${result.size} ASNs to KV (24h TTL)`);
+		} catch (e) {
+			console.error('[ASN Batch] KV write error:', e);
+		}
+	}
+
+	return result;
 }
 
 // Get unique collectors from peers data (sorted by project then name)

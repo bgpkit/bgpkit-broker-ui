@@ -1,7 +1,9 @@
+// @ts-nocheck - Platform types not available in generated $types
 import type { BrokerData, PeersData, AsnInfo, CollectorInfo } from "../lib/types";
+import { fetchAsnInfoBatch } from "../lib/common";
 
-/** @type {import('./$types').PageLoad} */
-export async function load({ fetch, url }): Promise<{
+/** @type {import('./$types').PageServerLoad} */
+export async function load({ fetch, url, platform }): Promise<{
   brokerData: BrokerData;
   peersData: PeersData;
   asnData: Map<number, AsnInfo>;
@@ -26,12 +28,25 @@ export async function load({ fetch, url }): Promise<{
   else if (tabParam === "selector") initialTab = 2;
   else if (tabParam === "peers" || url.searchParams.has("asnModal") || (url.searchParams.has("countryModal") && tabParam !== "collectors")) initialTab = 1;
 
-  // Return empty ASN data - it will be loaded progressively on the client
-  // This significantly improves initial page load time
+  // Fetch ASN data server-side with KV caching
+  // This allows KV to cache results and avoids client-side API calls
+  const loadStartTime = performance.now();
+  const uniqueAsns = [...new Set(peersData.data.map((p: { asn: number }) => p.asn))];
+  console.log(`[Server] Starting ASN load for ${uniqueAsns.length} unique ASNs...`);
+
+  const asnData = await fetchAsnInfoBatch(
+    uniqueAsns,
+    undefined,
+    platform?.env as { ASN_CACHE?: KVNamespace } | undefined
+  );
+
+  const duration = performance.now() - loadStartTime;
+  console.log(`[Server] ASN loading complete: ${asnData.size} ASNs in ${duration.toFixed(1)}ms`);
+
   return {
     brokerData,
     peersData,
-    asnData: new Map<number, AsnInfo>(),
+    asnData,
     collectorsData,
     initialTab,
   };

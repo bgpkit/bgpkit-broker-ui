@@ -268,11 +268,12 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <!-- Start Time -->
             <div class="form-control">
-                <label class="label">
+                <label for="start-date" class="label">
                     <span class="label-text font-medium">Start Time (UTC)</span>
                 </label>
                 <div class="flex gap-1">
                     <input
+                        id="start-date"
                         type="date"
                         class="input input-bordered input-sm flex-1"
                         value={toDateValue(tsStart)}
@@ -293,11 +294,12 @@
 
             <!-- End Time -->
             <div class="form-control">
-                <label class="label">
+                <label for="end-date" class="label">
                     <span class="label-text font-medium">End Time (UTC)</span>
                 </label>
                 <div class="flex gap-1">
                     <input
+                        id="end-date"
                         type="date"
                         class="input input-bordered input-sm flex-1"
                         value={toDateValue(tsEnd)}
