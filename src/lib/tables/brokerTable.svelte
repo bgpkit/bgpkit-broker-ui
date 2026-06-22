@@ -1,7 +1,5 @@
 <script lang="ts">
     import filesize from "file-size";
-    import pkg from "moment/moment";
-    const { duration } = pkg;
     import type {
         BrokerData,
         BrokerDataEntry,
@@ -18,11 +16,13 @@
         sortCollectors,
         getCollectorStatus,
         countryToFlag,
+        formatDurationAgo,
     } from "../common";
     import FilterBar from "../components/FilterBar.svelte";
     import CollectorModal from "../components/CollectorModal.svelte";
     import CountryModal from "../components/CountryModal.svelte";
     import { buildCountrySummary } from "../common";
+    import { setOrDeleteParam } from "../urlState";
 
     let {
         brokerData,
@@ -218,20 +218,8 @@
         const url = new URL(window.location.href);
         let changed = false;
 
-        const setOrDelete = (
-            key: string,
-            value: string,
-            defaultVal: string,
-        ) => {
-            if (value !== defaultVal) {
-                if (url.searchParams.get(key) !== value) {
-                    url.searchParams.set(key, value);
-                    changed = true;
-                }
-            } else if (url.searchParams.has(key)) {
-                url.searchParams.delete(key);
-                changed = true;
-            }
+        const syncParam = (key: string, value: string, defaultVal: string) => {
+            changed = setOrDeleteParam(url, key, value, defaultVal) || changed;
         };
 
         // Always set tab=collectors when on collectors table
@@ -240,11 +228,11 @@
             changed = true;
         }
 
-        setOrDelete("search", search, "");
-        setOrDelete("project", project, "all");
-        setOrDelete("dataType", dataType, "all");
-        setOrDelete("status", status, "all");
-        setOrDelete("showDecommissioned", showDecommissioned ? "true" : "", "");
+        syncParam("search", search, "");
+        syncParam("project", project, "all");
+        syncParam("dataType", dataType, "all");
+        syncParam("status", status, "all");
+        syncParam("showDecommissioned", showDecommissioned ? "true" : "", "");
         if (url.searchParams.has("showDeprecated")) {
             url.searchParams.delete("showDeprecated");
             changed = true;
@@ -477,7 +465,7 @@
                                 >{entry.ts_start.replace("T", " ")}</td
                             >
                             <td class="border border-base-300"
-                                >{duration(entry.delay, "seconds").humanize()} ago</td
+                                >{formatDurationAgo(entry.delay)}</td
                             >
                             <td class="border border-base-300"
                                 >{filesize(entry.rough_size).human("si")}</td

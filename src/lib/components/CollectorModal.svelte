@@ -1,9 +1,7 @@
 <script lang="ts">
     import filesize from "file-size";
-    import pkg from "moment/moment";
-    const { duration } = pkg;
     import type { CollectorSummary, AsnInfo } from "../types";
-    import { countryToFlag, extractCollectorUrl } from "../common";
+    import { countryToFlag, extractCollectorUrl, formatDurationAgo } from "../common";
 
     let {
         summary,
@@ -222,10 +220,7 @@
                                     )} UTC
                                 </p>
                                 <p class="text-sm text-base-content/70">
-                                    {duration(
-                                        summary.latestRib.delay,
-                                        "seconds",
-                                    ).humanize()} ago •
+                                    {formatDurationAgo(summary.latestRib.delay)} •
                                     {filesize(
                                         summary.latestRib.rough_size,
                                     ).human("si")}
@@ -254,10 +249,7 @@
                                     )} UTC
                                 </p>
                                 <p class="text-sm text-base-content/70">
-                                    {duration(
-                                        summary.latestUpdates.delay,
-                                        "seconds",
-                                    ).humanize()} ago • {filesize(
+                                    {formatDurationAgo(summary.latestUpdates.delay)} • {filesize(
                                         summary.latestUpdates.rough_size,
                                     ).human("si")}
                                 </p>

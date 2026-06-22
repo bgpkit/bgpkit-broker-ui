@@ -26,6 +26,7 @@
     import CollectorModal from "../components/CollectorModal.svelte";
     import CountryModal from "../components/CountryModal.svelte";
     import AsnModal from "../components/AsnModal.svelte";
+    import { setOrDeleteParam } from "../urlState";
 
     let {
         peersData,
@@ -120,20 +121,8 @@
         const url = new URL(window.location.href);
         let changed = false;
 
-        const setOrDelete = (
-            key: string,
-            value: string,
-            defaultVal: string,
-        ) => {
-            if (value !== defaultVal) {
-                if (url.searchParams.get(key) !== value) {
-                    url.searchParams.set(key, value);
-                    changed = true;
-                }
-            } else if (url.searchParams.has(key)) {
-                url.searchParams.delete(key);
-                changed = true;
-            }
+        const syncParam = (key: string, value: string, defaultVal: string) => {
+            changed = setOrDeleteParam(url, key, value, defaultVal) || changed;
         };
 
         // Always set tab=peers when on peers table
@@ -142,12 +131,12 @@
             changed = true;
         }
 
-        setOrDelete("collector", collectorFilter, "");
-        setOrDelete("country", countryFilter, "");
-        setOrDelete("project", project, "all");
-        setOrDelete("ip", ipVersion, "all");
-        setOrDelete("feed", fullFeed, "all");
-        setOrDelete("q", search, "");
+        syncParam("collector", collectorFilter, "");
+        syncParam("country", countryFilter, "");
+        syncParam("project", project, "all");
+        syncParam("ip", ipVersion, "all");
+        syncParam("feed", fullFeed, "all");
+        syncParam("q", search, "");
 
         // Sync modal params (mutually exclusive - only one modal can be open at a time)
         if (selectedCollector && collectorModalOpen) {

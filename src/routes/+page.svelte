@@ -160,7 +160,7 @@
     }
 
     // ASN data is now loaded server-side with KV caching
-    // See +page.ts for the fetchAsnInfoBatch call
+    // See +page.server.ts for the fetchAsnInfoBatch call
 
     function handleTabChange(tabIndex: number) {
         activeTab = tabIndex;

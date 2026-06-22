@@ -29,7 +29,7 @@ declare global {
         // Add other Cloudflare bindings here as needed
       };
       context?: {
-        waitUntil(promise: Promise<any>): void;
+        waitUntil(promise: Promise<unknown>): void;
       };
       cf?: {
         // Cloudflare request metadata

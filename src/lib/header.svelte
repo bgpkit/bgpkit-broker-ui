@@ -1,7 +1,5 @@
 <script lang="ts">
-	import moment from "moment";
-
-	const { duration } = moment;
+	import { formatDurationAgo } from "$lib/format";
 
 	let { last_updated_ts }: { last_updated_ts: string } = $props();
 
@@ -21,7 +19,7 @@
 		<div class="text-center sm:text-left">
 			<h1 class="text-2xl sm:text-3xl lg:text-4xl">BGPKIT Broker Status</h1>
 			<p class="text-sm sm:text-base text-base-content/60">
-				Last updated: {duration(diff / 1000, "seconds").humanize()} ago
+				Last updated: {formatDurationAgo(diff / 1000)}
 				(UTC {last_updated_ts}Z)
 			</p>
 		</div>
