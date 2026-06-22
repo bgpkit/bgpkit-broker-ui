@@ -19,10 +19,11 @@ export function fileDelayed(delay: number, data_type: string): boolean {
      );
  }
 
-export const DEPRECATED_COLLECTORS = [
+export const DECOMMISSIONED_COLLECTORS = [
      "rrc02",
      "rrc08",
      "rrc09",
+     "route-views.chile",
      "route-views.jinx",
      "route-views.siex",
      "route-views.saopaulo",
@@ -60,9 +61,9 @@ export function getCollectorStatus(
      collectorId: string,
      delay: number,
      dataType: string,
-): "ok" | "delayed" | "deprecated" {
-     if (DEPRECATED_COLLECTORS.includes(collectorId)) {
-          return "deprecated";
+): "ok" | "delayed" | "decommissioned" {
+     if (DECOMMISSIONED_COLLECTORS.includes(collectorId)) {
+          return "decommissioned";
      }
      if (fileDelayed(delay, dataType)) {
           return "delayed";
@@ -86,7 +87,7 @@ export function filterBrokerData(
      project: ProjectFilter,
      dataType: DataTypeFilter,
      status: StatusFilter,
-     showDeprecated: boolean = false,
+     showDecommissioned: boolean = false,
 ): BrokerDataEntry[] {
      return entries.filter((entry) => {
           // Search filter
@@ -117,8 +118,8 @@ export function filterBrokerData(
                entry.data_type,
           );
 
-          // Hide deprecated unless showDeprecated is true
-          if (entryStatus === "deprecated" && !showDeprecated) {
+          // Hide decommissioned unless showDecommissioned is true
+          if (entryStatus === "decommissioned" && !showDecommissioned) {
                return false;
           }
 
@@ -706,9 +707,9 @@ export function buildCollectorSummary(
      );
 
      // Determine status from either rib or updates
-     let status: "ok" | "delayed" | "deprecated" = "ok";
-     if (DEPRECATED_COLLECTORS.includes(collectorId)) {
-          status = "deprecated";
+     let status: "ok" | "delayed" | "decommissioned" = "ok";
+     if (DECOMMISSIONED_COLLECTORS.includes(collectorId)) {
+          status = "decommissioned";
      } else {
           const ribDelayed = latestRib && fileDelayed(latestRib.delay, "rib");
           const updatesDelayed =
@@ -785,8 +786,8 @@ export function sortBrokerData(
           let comparison = 0;
 
           if (sortBy === "status") {
-               // Sort by status: ok < delayed < deprecated
-               const statusOrder = { ok: 0, delayed: 1, deprecated: 2 };
+               // Sort by status: ok < delayed < decommissioned
+               const statusOrder = { ok: 0, delayed: 1, decommissioned: 2 };
                const aStatus = getCollectorStatus(
                     a.collector_id,
                     a.delay,

@@ -17,7 +17,7 @@
         project = $bindable<ProjectFilter>("all"),
         dataType = $bindable<DataTypeFilter>("all"),
         status = $bindable<StatusFilter>("all"),
-        showDeprecated = $bindable(false),
+        showDecommissioned = $bindable(false),
         ipVersion = $bindable<IpVersionFilter>("all"),
         fullFeed = $bindable<FullFeedFilter>("all"),
         collectorFilter = $bindable(""),
@@ -33,7 +33,7 @@
         project?: ProjectFilter;
         dataType?: DataTypeFilter;
         status?: StatusFilter;
-        showDeprecated?: boolean;
+        showDecommissioned?: boolean;
         ipVersion?: IpVersionFilter;
         fullFeed?: FullFeedFilter;
         collectorFilter?: string;
@@ -82,7 +82,7 @@
         if (type === "broker") {
             dataType = "all";
             status = "all";
-            showDeprecated = false;
+            showDecommissioned = false;
         } else {
             ipVersion = "all";
             fullFeed = "all";
@@ -106,7 +106,7 @@
         search !== "" ||
             project !== "all" ||
             (type === "broker" &&
-                (dataType !== "all" || status !== "all" || showDeprecated)) ||
+                (dataType !== "all" || status !== "all" || showDecommissioned)) ||
             (type === "peers" &&
                 (ipVersion !== "all" ||
                     fullFeed !== "all" ||
@@ -237,14 +237,14 @@
                 </div>
             </div>
 
-            <!-- Show Deprecated Checkbox -->
+            <!-- Show Decommissioned Checkbox -->
             <label class="flex items-center gap-2 cursor-pointer">
                 <input
                     type="checkbox"
                     class="checkbox checkbox-sm"
-                    bind:checked={showDeprecated}
+                    bind:checked={showDecommissioned}
                 />
-                <span class="text-sm">Show deprecated</span>
+                <span class="text-sm">Show decommissioned</span>
             </label>
         {:else}
             <!-- Collector Filter (dropdown) -->

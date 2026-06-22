@@ -17,6 +17,10 @@ command = "npm run build"
 pattern = "status.broker.bgpkit.com"
 custom_domain = true
 
+[[routes]]
+pattern = "ui.broker.bgpkit.com"
+custom_domain = true
+
 # Optional: Environment variables (use wrangler secret put for sensitive values)
 # [vars]
 # MY_VAR = "value"

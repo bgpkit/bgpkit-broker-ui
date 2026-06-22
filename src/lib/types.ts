@@ -110,7 +110,7 @@ export type FullFeedFilter = "all" | "fullfeed" | "partial";
 export interface CollectorSummary {
   collector_id: string;
   project: "RouteViews" | "RIPE RIS";
-  status: "ok" | "delayed" | "deprecated";
+  status: "ok" | "delayed" | "decommissioned";
   latestRib?: BrokerDataEntry;
   latestUpdates?: BrokerDataEntry;
   peerCount: number;

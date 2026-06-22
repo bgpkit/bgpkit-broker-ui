@@ -29,25 +29,25 @@
         }
     }
 
-    function getStatusBadge(status: "ok" | "delayed" | "deprecated") {
+    function getStatusBadge(status: "ok" | "delayed" | "decommissioned") {
         switch (status) {
             case "ok":
                 return "badge-success";
             case "delayed":
                 return "badge-warning";
-            case "deprecated":
+            case "decommissioned":
                 return "badge-neutral";
         }
     }
 
-    function getStatusText(status: "ok" | "delayed" | "deprecated") {
+    function getStatusText(status: "ok" | "delayed" | "decommissioned") {
         switch (status) {
             case "ok":
                 return "On-time";
             case "delayed":
                 return "Delayed";
-            case "deprecated":
-                return "Deprecated";
+            case "decommissioned":
+                return "Decommissioned";
         }
     }
 

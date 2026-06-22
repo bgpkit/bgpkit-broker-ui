@@ -40,7 +40,7 @@
             url.searchParams.delete("search");
             url.searchParams.delete("dataType");
             url.searchParams.delete("status");
-            url.searchParams.delete("showDeprecated");
+            url.searchParams.delete("showDecommissioned");
             url.searchParams.delete("collectorModal");
             url.searchParams.delete("mrt_ts_start");
             url.searchParams.delete("mrt_ts_end");
@@ -60,7 +60,7 @@
             url.searchParams.delete("search");
             url.searchParams.delete("dataType");
             url.searchParams.delete("status");
-            url.searchParams.delete("showDeprecated");
+            url.searchParams.delete("showDecommissioned");
             url.searchParams.delete("asnModal");
             url.searchParams.delete("countryModal");
             url.searchParams.delete("collectorModal");
@@ -82,7 +82,7 @@
             url.searchParams.delete("search");
             url.searchParams.delete("dataType");
             url.searchParams.delete("status");
-            url.searchParams.delete("showDeprecated");
+            url.searchParams.delete("showDecommissioned");
             url.searchParams.delete("asnModal");
             url.searchParams.delete("countryModal");
             url.searchParams.delete("collectorModal");
@@ -191,7 +191,7 @@
                 url.searchParams.delete("search");
                 url.searchParams.delete("dataType");
                 url.searchParams.delete("status");
-                url.searchParams.delete("showDeprecated");
+                url.searchParams.delete("showDecommissioned");
                 url.searchParams.delete("collectorModal");
                 url.searchParams.delete("mrt_ts_start");
                 url.searchParams.delete("mrt_ts_end");
@@ -211,7 +211,7 @@
                 url.searchParams.delete("search");
                 url.searchParams.delete("dataType");
                 url.searchParams.delete("status");
-                url.searchParams.delete("showDeprecated");
+                url.searchParams.delete("showDecommissioned");
                 url.searchParams.delete("asnModal");
                 url.searchParams.delete("countryModal");
                 url.searchParams.delete("collectorModal");
@@ -233,7 +233,7 @@
                 url.searchParams.delete("search");
                 url.searchParams.delete("dataType");
                 url.searchParams.delete("status");
-                url.searchParams.delete("showDeprecated");
+                url.searchParams.delete("showDecommissioned");
                 url.searchParams.delete("asnModal");
                 url.searchParams.delete("countryModal");
                 url.searchParams.delete("collectorModal");

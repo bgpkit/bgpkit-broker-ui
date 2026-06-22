@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { DEPRECATED_COLLECTORS, fileDelayed } from "$lib/common";
+    import { DECOMMISSIONED_COLLECTORS, fileDelayed } from "$lib/common";
     import type { BrokerData, BrokerDataEntry } from "$lib/types";
 
     let { brokerData }: { brokerData: BrokerData } = $props();
@@ -9,7 +9,7 @@
         let total = 0;
 
         brokerData.data.forEach((entry: BrokerDataEntry) => {
-            if (!DEPRECATED_COLLECTORS.includes(entry.collector_id)) {
+            if (!DECOMMISSIONED_COLLECTORS.includes(entry.collector_id)) {
                 total += 1;
                 if (fileDelayed(entry.delay, entry.data_type)) {
                     delayed.push(`${entry.collector_id}_${entry.data_type}`);
