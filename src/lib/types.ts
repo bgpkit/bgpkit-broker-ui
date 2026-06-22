@@ -43,6 +43,39 @@ export interface PeersDataEntry {
   num_connected_asns: number;
 }
 
+export interface BrokerHealthData {
+  message: string;
+  status: string;
+  backend: string;
+  fail_over: boolean;
+  meta: {
+    delay_secs: number;
+    latest_file_ts: number;
+  };
+  sse?: {
+    status: string;
+    last_check: string;
+    response_time_ms: number;
+  };
+}
+
+export interface StreamEntry {
+  collector: string;
+  stream_collector: string;
+  wildcard_topic: string;
+  topics: string[];
+}
+
+export interface StreamsData {
+  count: number;
+  meta: {
+    fetched_at: string;
+    collector_count: number;
+    topic_count: number;
+  };
+  data: StreamEntry[];
+}
+
 export interface CombinedData {
   brokerData: BrokerData;
   peersData: PeersData;

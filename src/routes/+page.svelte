@@ -6,8 +6,11 @@
     import PeersTable from "$lib/tables/peersTable.svelte";
     import PeersStats from "$lib/stats/peersStats.svelte";
     import CountryStats from "$lib/stats/countryStats.svelte";
+    import BrokerHealthStats from "$lib/stats/brokerHealthStats.svelte";
     import CollectorSelector from "$lib/components/CollectorSelector.svelte";
     import MrtSearch from "$lib/tables/MrtSearch.svelte";
+    import StreamsTable from "$lib/tables/streamsTable.svelte";
+    import LiveEvents from "$lib/tables/liveEvents.svelte";
     import type { AsnInfo } from "$lib/types";
     import { browser } from "$app/environment";
 
@@ -17,13 +20,15 @@
     let brokerData = $derived(data.brokerData);
     let peersData = $derived(data.peersData);
     let collectorsData = $derived(data.collectorsData);
+    let healthData = $derived(data.healthData);
+    let streamsData = $derived(data.streamsData);
 
     // ASN data - now loaded server-side with KV caching
     let asnData = $derived(data.asnData);
     let asnLoading = $state(false);
     let asnLoadProgress = $derived({ loaded: asnData.size, total: asnData.size });
 
-    // Tab state - 0 = Route Collectors, 1 = Collector Peers, 2 = Collector Selector, 3 = MRT Search
+    // Tab state - 0 = Route Collectors, 1 = Collector Peers, 2 = Collector Selector, 3 = MRT Search, 4 = Streams, 5 = Live Updates
     // svelte-ignore state_referenced_locally
     let activeTab = $state(data.initialTab);
     let urlTabInitialized = $state(true);
@@ -86,6 +91,50 @@
             url.searchParams.delete("asnModal");
             url.searchParams.delete("countryModal");
             url.searchParams.delete("collectorModal");
+        } else if (activeTab === 4) {
+            newTab = "streams";
+            peersCollectorFilter = null;
+            peersCountryFilter = null;
+            url.searchParams.delete("collector");
+            url.searchParams.delete("country");
+            url.searchParams.delete("project");
+            url.searchParams.delete("ip");
+            url.searchParams.delete("feed");
+            url.searchParams.delete("q");
+            url.searchParams.delete("search");
+            url.searchParams.delete("dataType");
+            url.searchParams.delete("status");
+            url.searchParams.delete("showDecommissioned");
+            url.searchParams.delete("asnModal");
+            url.searchParams.delete("countryModal");
+            url.searchParams.delete("collectorModal");
+            url.searchParams.delete("mrt_ts_start");
+            url.searchParams.delete("mrt_ts_end");
+            url.searchParams.delete("mrt_project");
+            url.searchParams.delete("mrt_collector");
+            url.searchParams.delete("mrt_data_type");
+        } else if (activeTab === 5) {
+            newTab = "live";
+            peersCollectorFilter = null;
+            peersCountryFilter = null;
+            url.searchParams.delete("collector");
+            url.searchParams.delete("country");
+            url.searchParams.delete("project");
+            url.searchParams.delete("ip");
+            url.searchParams.delete("feed");
+            url.searchParams.delete("q");
+            url.searchParams.delete("search");
+            url.searchParams.delete("dataType");
+            url.searchParams.delete("status");
+            url.searchParams.delete("showDecommissioned");
+            url.searchParams.delete("asnModal");
+            url.searchParams.delete("countryModal");
+            url.searchParams.delete("collectorModal");
+            url.searchParams.delete("mrt_ts_start");
+            url.searchParams.delete("mrt_ts_end");
+            url.searchParams.delete("mrt_project");
+            url.searchParams.delete("mrt_collector");
+            url.searchParams.delete("mrt_data_type");
         } else {
             // Switching to collectors tab
             url.searchParams.delete("country");
@@ -253,11 +302,12 @@
         </div>
     {/if}
 
-    <div class="grid grid-cols-2 lg:grid-cols-4 pt-8 gap-4">
+    <div class="grid grid-cols-2 lg:grid-cols-5 pt-8 gap-4">
         <CollectorStats {brokerData} />
         <OnTimeStats {brokerData} />
         <PeersStats {peersData} />
         <CountryStats {peersData} {asnData} isLoading={asnLoading} />
+        <BrokerHealthStats {healthData} />
     </div>
 
     <div role="tablist" class="tabs tabs-bordered tabs-lift tabs-lg pt-8">
@@ -370,6 +420,38 @@
                     <span class="loading loading-dots loading-lg"></span>
                 </div>
             {/if}
+        </div>
+
+        <input
+            type="radio"
+            name="tab"
+            role="tab"
+            class="tab"
+            bind:group={activeTab}
+            value={4}
+            aria-label="Kafka Streams"
+        />
+        <div
+            role="tabpanel"
+            class="tab-content bg-base-100 border-base-300 rounded-box p-6"
+        >
+            <StreamsTable {streamsData} />
+        </div>
+
+        <input
+            type="radio"
+            name="tab"
+            role="tab"
+            class="tab"
+            bind:group={activeTab}
+            value={5}
+            aria-label="Live Updates"
+        />
+        <div
+            role="tabpanel"
+            class="tab-content bg-base-100 border-base-300 rounded-box p-6"
+        >
+            <LiveEvents />
         </div>
     </div>
 

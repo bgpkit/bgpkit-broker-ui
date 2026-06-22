@@ -1,5 +1,5 @@
 import type { PageServerLoad } from "./$types";
-import type { BrokerData, PeersData, AsnInfo, CollectorInfo } from "$lib/types";
+import type { BrokerData, PeersData, AsnInfo, CollectorInfo, BrokerHealthData, StreamsData } from "$lib/types";
 import { fetchAsnInfoBatch } from "$lib/asnCache";
 
 async function readJsonResponse<T>(response: Response, label: string): Promise<T> {
@@ -14,29 +14,46 @@ async function readJsonResponse<T>(response: Response, label: string): Promise<T
   }
 }
 
+async function readOptionalJsonResponse<T>(response: Response, label: string): Promise<T | null> {
+  try {
+    return await readJsonResponse<T>(response, label);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
 export const load: PageServerLoad = async ({ fetch, url, platform }): Promise<{
   brokerData: BrokerData;
   peersData: PeersData;
   asnData: Map<number, AsnInfo>;
   collectorsData: CollectorInfo[];
+  healthData: BrokerHealthData | null;
+  streamsData: StreamsData | null;
   initialTab: number;
 }> => {
-  const [brokerResponse, peersResponse, collectorsResponse] = await Promise.all([
+  const [brokerResponse, peersResponse, collectorsResponse, healthResponse, streamsResponse] = await Promise.all([
     fetch("https://api.bgpkit.com/v3/broker/latest"),
-    fetch("https://api.bgpkit.com/v3/peers/list"),
+    fetch("https://api.bgpkit.com/v3/broker/peers"),
     fetch("https://api.bgpkit.com/v3/broker/collectors"),
+    fetch("https://api.bgpkit.com/v3/broker/health"),
+    fetch("https://api.bgpkit.com/v3/broker/streams"),
   ]);
 
-  const [brokerData, peersData, collectorsResponseJson] = await Promise.all([
+  const [brokerData, peersData, collectorsResponseJson, healthData, streamsData] = await Promise.all([
     readJsonResponse<BrokerData>(brokerResponse, "Broker latest API"),
-    readJsonResponse<PeersData>(peersResponse, "Peers list API"),
+    readJsonResponse<PeersData>(peersResponse, "Broker peers API"),
     readJsonResponse<{ data?: CollectorInfo[] }>(collectorsResponse, "Collectors API"),
+    readOptionalJsonResponse<BrokerHealthData>(healthResponse, "Broker health API"),
+    readOptionalJsonResponse<StreamsData>(streamsResponse, "RouteViews streams API"),
   ]);
   const collectorsData = collectorsResponseJson.data ?? [];
 
   const tabParam = url.searchParams.get("tab");
   let initialTab = 0;
-  if (tabParam === "search") initialTab = 3;
+  if (tabParam === "live") initialTab = 5;
+  else if (tabParam === "streams") initialTab = 4;
+  else if (tabParam === "search") initialTab = 3;
   else if (tabParam === "selector") initialTab = 2;
   else if (
     tabParam === "peers" ||
@@ -54,6 +71,8 @@ export const load: PageServerLoad = async ({ fetch, url, platform }): Promise<{
     peersData,
     asnData,
     collectorsData,
+    healthData,
+    streamsData,
     initialTab,
   };
 };
