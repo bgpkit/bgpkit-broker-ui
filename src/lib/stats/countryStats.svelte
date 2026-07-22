@@ -54,40 +54,52 @@
     );
 </script>
 
-<div class="stats shadow-lg w-full sm:flex-1 border-l-4 border-secondary">
+<div class="rounded-lg border border-base-300 bg-base-100 p-4">
+    <div
+        class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-base-content/55"
+    >
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="h-3.5 w-3.5"
+        >
+            <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5"
+            />
+        </svg>
+        Peer AS Country/Region
+    </div>
     {#if isLoading}
-        <div class="stat py-3 sm:py-4">
-            <div class="stat-title text-xs sm:text-sm">Peer AS Country/Region</div>
-            <div class="stat-value flex items-center gap-2">
-                <span class="loading loading-spinner loading-md"></span>
-            </div>
-            <div class="stat-desc text-xs">Loading ASN data...</div>
+        <div class="mt-2 flex items-center gap-2 py-1">
+            <span class="loading loading-spinner loading-sm"></span>
         </div>
+        <div class="mt-1 text-xs text-base-content/55">Loading ASN data...</div>
     {:else if !ready}
-        <div class="stat py-3 sm:py-4">
-            <div class="stat-title text-xs sm:text-sm">Peer AS Country/Region</div>
-            <div class="stat-value">--</div>
-            <div class="stat-desc text-xs">No ASN data available</div>
-        </div>
+        <div class="mt-2 text-3xl font-semibold tracking-tight tabular-nums">--</div>
+        <div class="mt-1 text-xs text-base-content/55">No ASN data available</div>
     {:else}
-        <div class="stat py-3 sm:py-4">
-            <div class="stat-title text-xs sm:text-sm">Peer AS Country/Region</div>
-            <div class="stat-value text-2xl sm:text-3xl">{uniqueCountries}</div>
-            <div class="stat-desc text-xs">from {totalAsns} peer ASNs</div>
-            {#if topCountries.length > 0}
-                <div class="stat-desc mt-1 flex flex-wrap gap-1">
-                    {#each topCountries as { country, count }}
-                        <span
-                            class="badge badge-sm gap-1"
-                            title="{count} ASNs from {country}"
-                        >
-                            {countryToFlag(country)}
-                            {country}
-                            <span class="opacity-70">({count})</span>
-                        </span>
-                    {/each}
-                </div>
-            {/if}
+        <div class="mt-2 text-3xl font-semibold tracking-tight tabular-nums">
+            {uniqueCountries}
         </div>
+        <div class="mt-1 text-xs text-base-content/55">from {totalAsns} peer ASNs</div>
+        {#if topCountries.length > 0}
+            <div class="mt-2 flex flex-wrap gap-1">
+                {#each topCountries as { country, count }}
+                    <span
+                        class="badge badge-sm badge-ghost gap-1"
+                        title="{count} ASNs from {country}"
+                    >
+                        {countryToFlag(country)}
+                        {country}
+                        <span class="opacity-60">({count})</span>
+                    </span>
+                {/each}
+            </div>
+        {/if}
     {/if}
 </div>

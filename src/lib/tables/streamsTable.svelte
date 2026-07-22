@@ -5,6 +5,7 @@
 
     let search = $state("");
     let expanded = $state<Set<string>>(new Set());
+    let copiedTopic = $state<string | null>(null);
 
     let filteredStreams = $derived.by(() => {
         if (!streamsData?.data) return [];
@@ -27,6 +28,18 @@
         }
         expanded = next;
     }
+
+    async function copyTopic(topic: string) {
+        try {
+            await navigator.clipboard.writeText(topic);
+            copiedTopic = topic;
+            setTimeout(() => {
+                if (copiedTopic === topic) copiedTopic = null;
+            }, 1500);
+        } catch (error) {
+            console.error("Failed to copy topic:", error);
+        }
+    }
 </script>
 
 {#if !streamsData}
@@ -35,18 +48,30 @@
     </div>
 {:else}
     <div class="flex flex-col gap-4 mb-4">
-        <div class="stats stats-vertical lg:stats-horizontal shadow bg-base-200">
-            <div class="stat">
-                <div class="stat-title">Stream Collectors</div>
-                <div class="stat-value text-2xl">{streamsData.meta.collector_count}</div>
+        <div class="grid grid-cols-3 gap-3">
+            <div class="rounded-lg border border-base-300 bg-base-100 p-4">
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-base-content/55">
+                    Stream Collectors
+                </div>
+                <div class="mt-1 text-2xl font-semibold tracking-tight tabular-nums">
+                    {streamsData.meta.collector_count}
+                </div>
             </div>
-            <div class="stat">
-                <div class="stat-title">Kafka Topics</div>
-                <div class="stat-value text-2xl">{streamsData.meta.topic_count.toLocaleString()}</div>
+            <div class="rounded-lg border border-base-300 bg-base-100 p-4">
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-base-content/55">
+                    Kafka Topics
+                </div>
+                <div class="mt-1 text-2xl font-semibold tracking-tight tabular-nums">
+                    {streamsData.meta.topic_count.toLocaleString()}
+                </div>
             </div>
-            <div class="stat">
-                <div class="stat-title">Fetched</div>
-                <div class="stat-value text-sm">{streamsData.meta.fetched_at.replace("T", " ").replace("Z", " UTC")}</div>
+            <div class="rounded-lg border border-base-300 bg-base-100 p-4">
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-base-content/55">
+                    Fetched
+                </div>
+                <div class="mt-1 font-mono text-sm">
+                    {streamsData.meta.fetched_at.replace("T", " ").replace("Z", " UTC")}
+                </div>
             </div>
         </div>
 
@@ -57,7 +82,7 @@
                 placeholder="Search collector or Kafka topic..."
                 bind:value={search}
             />
-            <div class="text-sm text-base-content/70">
+            <div class="text-sm text-base-content/70 tabular-nums">
                 Showing <span class="font-semibold">{filteredStreams.length}</span> of
                 <span class="font-semibold">{streamsData.count}</span> collectors
             </div>
@@ -65,23 +90,49 @@
     </div>
 
     <div class="overflow-auto max-h-[70vh]">
-        <table class="table table-bordered border-collapse border border-base-300">
+        <table class="table data-table">
             <thead class="sticky top-0 z-10">
-                <tr class="border-b-2 border-base-300">
-                    <th class="bg-base-200 border border-base-300">Collector</th>
-                    <th class="bg-base-200 border border-base-300">Stream Collector</th>
-                    <th class="bg-base-200 border border-base-300">Wildcard Topic</th>
-                    <th class="bg-base-200 border border-base-300">Topics</th>
+                <tr class="border-b border-base-300">
+                    <th class="bg-base-200 ">Collector</th>
+                    <th class="bg-base-200 ">Stream Collector</th>
+                    <th class="bg-base-200 ">Wildcard Topic</th>
+                    <th class="bg-base-200 ">Topics</th>
                 </tr>
             </thead>
             <tbody>
                 {#each filteredStreams as entry}
                     {@const isExpanded = expanded.has(entry.collector)}
                     <tr class="hover:bg-base-200">
-                        <td class="border border-base-300 font-mono text-sm">{entry.collector}</td>
-                        <td class="border border-base-300 font-mono text-sm">{entry.stream_collector}</td>
-                        <td class="border border-base-300 font-mono text-xs">{entry.wildcard_topic}</td>
-                        <td class="border border-base-300">
+                        <td class=" font-mono text-sm">{entry.collector}</td>
+                        <td class=" font-mono text-sm">{entry.stream_collector}</td>
+                        <td class=" font-mono text-xs">
+                            <button
+                                class="inline-flex items-center gap-1 hover:text-primary"
+                                title="Click to copy topic"
+                                onclick={() => copyTopic(entry.wildcard_topic)}
+                            >
+                                {entry.wildcard_topic}
+                                {#if copiedTopic === entry.wildcard_topic}
+                                    <span class="text-success text-[10px] font-sans">copied</span>
+                                {:else}
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke-width="1.5"
+                                        stroke="currentColor"
+                                        class="h-3.5 w-3.5 opacity-40"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5"
+                                        />
+                                    </svg>
+                                {/if}
+                            </button>
+                        </td>
+                        <td class="">
                             <button class="btn btn-xs btn-ghost" onclick={() => toggleExpanded(entry.collector)}>
                                 {entry.topics.length.toLocaleString()} topics {isExpanded ? "▲" : "▼"}
                             </button>

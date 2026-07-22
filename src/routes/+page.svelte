@@ -137,6 +137,8 @@
             url.searchParams.delete("mrt_data_type");
         } else {
             // Switching to collectors tab
+            peersCollectorFilter = null;
+            peersCountryFilter = null;
             url.searchParams.delete("country");
             url.searchParams.delete("project");
             url.searchParams.delete("ip");
@@ -211,98 +213,18 @@
     // ASN data is now loaded server-side with KV caching
     // See +page.server.ts for the fetchAsnInfoBatch call
 
-    function handleTabChange(tabIndex: number) {
-        activeTab = tabIndex;
-
-        // Update URL params when switching tabs
-        if (browser) {
-            const url = new URL(window.location.href);
-
-            if (tabIndex === 0) {
-                url.searchParams.set("tab", "collectors");
-                url.searchParams.delete("country");
-                url.searchParams.delete("project");
-                url.searchParams.delete("ip");
-                url.searchParams.delete("feed");
-                url.searchParams.delete("q");
-                url.searchParams.delete("collector");
-                url.searchParams.delete("asnModal");
-                url.searchParams.delete("mrt_ts_start");
-                url.searchParams.delete("mrt_ts_end");
-                url.searchParams.delete("mrt_project");
-                url.searchParams.delete("mrt_collector");
-                url.searchParams.delete("mrt_data_type");
-            } else if (tabIndex === 1) {
-                url.searchParams.set("tab", "peers");
-                peersCollectorFilter = null;
-                peersCountryFilter = null;
-                url.searchParams.delete("collector");
-                url.searchParams.delete("search");
-                url.searchParams.delete("dataType");
-                url.searchParams.delete("status");
-                url.searchParams.delete("showDecommissioned");
-                url.searchParams.delete("collectorModal");
-                url.searchParams.delete("mrt_ts_start");
-                url.searchParams.delete("mrt_ts_end");
-                url.searchParams.delete("mrt_project");
-                url.searchParams.delete("mrt_collector");
-                url.searchParams.delete("mrt_data_type");
-            } else if (tabIndex === 2) {
-                url.searchParams.set("tab", "selector");
-                peersCollectorFilter = null;
-                peersCountryFilter = null;
-                url.searchParams.delete("collector");
-                url.searchParams.delete("country");
-                url.searchParams.delete("project");
-                url.searchParams.delete("ip");
-                url.searchParams.delete("feed");
-                url.searchParams.delete("q");
-                url.searchParams.delete("search");
-                url.searchParams.delete("dataType");
-                url.searchParams.delete("status");
-                url.searchParams.delete("showDecommissioned");
-                url.searchParams.delete("asnModal");
-                url.searchParams.delete("countryModal");
-                url.searchParams.delete("collectorModal");
-                url.searchParams.delete("mrt_ts_start");
-                url.searchParams.delete("mrt_ts_end");
-                url.searchParams.delete("mrt_project");
-                url.searchParams.delete("mrt_collector");
-                url.searchParams.delete("mrt_data_type");
-            } else if (tabIndex === 3) {
-                url.searchParams.set("tab", "search");
-                peersCollectorFilter = null;
-                peersCountryFilter = null;
-                url.searchParams.delete("collector");
-                url.searchParams.delete("country");
-                url.searchParams.delete("project");
-                url.searchParams.delete("ip");
-                url.searchParams.delete("feed");
-                url.searchParams.delete("q");
-                url.searchParams.delete("search");
-                url.searchParams.delete("dataType");
-                url.searchParams.delete("status");
-                url.searchParams.delete("showDecommissioned");
-                url.searchParams.delete("asnModal");
-                url.searchParams.delete("countryModal");
-                url.searchParams.delete("collectorModal");
-            }
-
-            window.history.replaceState({}, "", url.toString());
-        }
-    }
 </script>
 
-<div class="container mx-auto my-10 px-4">
-    {#if brokerData}
-        <Header last_updated_ts={brokerData.meta.latest_update_ts} />
-    {:else}
-        <div class="flex justify-center">
+<Header last_updated_ts={brokerData?.meta?.latest_update_ts} />
+
+<div class="container mx-auto px-4 py-6">
+    {#if !brokerData}
+        <div class="flex justify-center py-8">
             <span class="loading loading-dots loading-lg"></span>
         </div>
     {/if}
 
-    <div class="grid grid-cols-2 lg:grid-cols-5 pt-8 gap-4">
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <CollectorStats {brokerData} />
         <OnTimeStats {brokerData} />
         <PeersStats {peersData} />
@@ -310,19 +232,19 @@
         <BrokerHealthStats {healthData} />
     </div>
 
-    <div role="tablist" class="tabs tabs-bordered tabs-lift tabs-lg pt-8">
+    <div role="tablist" class="tabs tabs-border mt-8">
         <input
             type="radio"
             name="tab"
             role="tab"
-            class="tab"
+            class="tab text-sm"
             bind:group={activeTab}
             value={0}
             aria-label="Route Collectors"
         />
         <div
             role="tabpanel"
-            class="tab-content bg-base-100 border-base-300 p-6"
+            class="tab-content pt-4"
         >
             {#if brokerData && peersData}
                 <BrokerTable
@@ -345,14 +267,14 @@
             type="radio"
             name="tab"
             role="tab"
-            class="tab"
+            class="tab text-sm"
             bind:group={activeTab}
             value={1}
             aria-label="Collector Peers"
         />
         <div
             role="tabpanel"
-            class="tab-content bg-base-100 border-base-300 rounded-box p-6"
+            class="tab-content pt-4"
         >
             {#if peersData && brokerData}
                 <PeersTable
@@ -374,14 +296,14 @@
             type="radio"
             name="tab"
             role="tab"
-            class="tab"
+            class="tab text-sm"
             bind:group={activeTab}
             value={2}
             aria-label="Collector Selector"
         />
         <div
             role="tabpanel"
-            class="tab-content bg-base-100 border-base-300 rounded-box p-6"
+            class="tab-content pt-4"
         >
             {#if peersData && asnData.size > 0 && brokerData}
                 <CollectorSelector
@@ -401,14 +323,14 @@
             type="radio"
             name="tab"
             role="tab"
-            class="tab"
+            class="tab text-sm"
             bind:group={activeTab}
             value={3}
             aria-label="MRT Search"
         />
         <div
             role="tabpanel"
-            class="tab-content bg-base-100 border-base-300 rounded-box p-6"
+            class="tab-content pt-4"
         >
             {#if collectorsData}
                 <MrtSearch
@@ -426,14 +348,14 @@
             type="radio"
             name="tab"
             role="tab"
-            class="tab"
+            class="tab text-sm"
             bind:group={activeTab}
             value={4}
             aria-label="Kafka Streams"
         />
         <div
             role="tabpanel"
-            class="tab-content bg-base-100 border-base-300 rounded-box p-6"
+            class="tab-content pt-4"
         >
             <StreamsTable {streamsData} />
         </div>
@@ -442,29 +364,27 @@
             type="radio"
             name="tab"
             role="tab"
-            class="tab"
+            class="tab text-sm"
             bind:group={activeTab}
             value={5}
             aria-label="Live Updates"
         />
         <div
             role="tabpanel"
-            class="tab-content bg-base-100 border-base-300 rounded-box p-6"
+            class="tab-content pt-4"
         >
-            <LiveEvents />
+            <LiveEvents collectorsData={collectorsData ?? []} />
         </div>
     </div>
 
-    <footer class="mt-8 text-center text-sm text-base-content/60">
+    <footer class="mt-10 border-t border-base-300 pt-4 text-center text-sm text-base-content/60">
         <p>
-            Data provided by <a
-                href="https://bgpkit.com"
-                class="link link-primary">BGPKIT</a
-            >
-            •
-            <a href="https://api.bgpkit.com/docs" class="link" target="_blank"
-                >API Documentation</a
-            >
+            Data provided by
+            <a href="https://bgpkit.com" class="link link-hover">BGPKIT</a>
+            ·
+            <a href="https://api.bgpkit.com/docs" class="link link-hover" target="_blank">API Documentation</a>
+            ·
+            <a href="https://github.com/bgpkit/bgpkit-broker-ui" class="link link-hover" target="_blank">Source on GitHub</a>
         </p>
     </footer>
 </div>

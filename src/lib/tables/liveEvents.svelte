@@ -1,6 +1,8 @@
 <script lang="ts">
-    import type { BrokerDataEntry } from "$lib/types";
+    import type { BrokerDataEntry, CollectorInfo } from "$lib/types";
     import filesize from "file-size";
+
+    let { collectorsData = [] }: { collectorsData?: CollectorInfo[] } = $props();
 
     type ConnectionStatus = "idle" | "connecting" | "connected" | "error";
 
@@ -64,11 +66,17 @@
 
     <div class="flex flex-wrap items-center gap-3">
         <input
-            class="input input-bordered min-w-64"
+            class="input input-bordered min-w-64 font-mono"
             placeholder="Collector filter, e.g. rrc23"
+            list="live-collector-options"
             bind:value={collector}
             disabled={status === "connected" || status === "connecting"}
         />
+        <datalist id="live-collector-options">
+            {#each collectorsData as c}
+                <option value={c.name}></option>
+            {/each}
+        </datalist>
         <select
             class="select select-bordered"
             bind:value={dataType}
@@ -85,31 +93,36 @@
         {/if}
         <button class="btn btn-ghost" onclick={clearEvents} disabled={events.length === 0}>Clear</button>
         <span class="badge {statusClass}">{status}</span>
+        {#if events.length > 0}
+            <span class="text-sm text-base-content/60 tabular-nums">
+                {events.length} event{events.length !== 1 ? "s" : ""}
+            </span>
+        {/if}
     </div>
 
     <div class="overflow-auto max-h-[70vh]">
-        <table class="table table-bordered border-collapse border border-base-300">
+        <table class="table data-table">
             <thead class="sticky top-0 z-10">
-                <tr class="border-b-2 border-base-300">
-                    <th class="bg-base-200 border border-base-300">Collector</th>
-                    <th class="bg-base-200 border border-base-300">Type</th>
-                    <th class="bg-base-200 border border-base-300">File Time UTC</th>
-                    <th class="bg-base-200 border border-base-300">Size</th>
-                    <th class="bg-base-200 border border-base-300">Latest</th>
+                <tr class="border-b border-base-300">
+                    <th class="bg-base-200 ">Collector</th>
+                    <th class="bg-base-200 ">Type</th>
+                    <th class="bg-base-200 ">File Time UTC</th>
+                    <th class="bg-base-200 ">Size</th>
+                    <th class="bg-base-200 ">Latest</th>
                 </tr>
             </thead>
             <tbody>
                 {#each events as entry, index (`${entry.url}-${index}`)}
                     <tr class="hover:bg-base-200">
-                        <td class="border border-base-300 font-mono text-sm">{entry.collector_id}</td>
-                        <td class="border border-base-300">
+                        <td class=" font-mono text-sm">{entry.collector_id}</td>
+                        <td class="">
                             <span class="badge badge-sm {entry.data_type === 'rib' ? 'badge-info' : 'badge-warning'}">
                                 {entry.data_type}
                             </span>
                         </td>
-                        <td class="border border-base-300 font-mono text-xs">{entry.ts_start.replace("T", " ")}</td>
-                        <td class="border border-base-300">{filesize(entry.rough_size).human("si")}</td>
-                        <td class="border border-base-300">
+                        <td class=" font-mono text-xs">{entry.ts_start.replace("T", " ")}</td>
+                        <td class="">{filesize(entry.rough_size).human("si")}</td>
+                        <td class="">
                             <a class="link link-primary" href={entry.url} target="_blank">Download</a>
                         </td>
                     </tr>

@@ -119,17 +119,32 @@
     <!-- Search and result count row -->
     <div class="flex flex-wrap items-center gap-4">
         <div class="flex-1 min-w-64">
-            <input
-                type="text"
-                placeholder={type === "broker"
-                    ? "Search collector..."
-                    : "Search collector, ASN (exact), IP, or org name..."}
-                value={searchInput}
-                oninput={handleSearchInput}
-                class="input input-bordered w-full"
-            />
+            <label class="input input-bordered w-full">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.5"
+                    stroke="currentColor"
+                    class="h-4 w-4 opacity-50"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                    />
+                </svg>
+                <input
+                    type="search"
+                    placeholder={type === "broker"
+                        ? "Search collector..."
+                        : "Search collector, ASN (exact), IP, or org name..."}
+                    value={searchInput}
+                    oninput={handleSearchInput}
+                />
+            </label>
         </div>
-        <div class="text-sm text-base-content/70">
+        <div class="text-sm text-base-content/70 tabular-nums">
             Showing <span class="font-semibold">{filteredCount}</span> of
             <span class="font-semibold">{totalCount}</span>
             {type === "broker" ? "entries" : "peers"}

@@ -383,24 +383,22 @@
     />
 
     <div class="overflow-auto max-h-[70vh]">
-        <table
-            class="table table-bordered border-collapse border border-base-300"
-        >
+        <table class="table data-table">
             <thead class="sticky top-0 z-10">
-                <tr class="border-b-2 border-base-300">
-                    <th class="bg-base-200 border border-base-300 w-36"
+                <tr class="border-b border-base-300">
+                    <th class="bg-base-200  w-36"
                         >Collector ID</th
                     >
-                    <th class="bg-base-200 border border-base-300">Type</th>
-                    <th class="bg-base-200 border border-base-300">Status</th>
-                    <th class="bg-base-200 border border-base-300"
+                    <th class="bg-base-200 ">Type</th>
+                    <th class="bg-base-200 ">Status</th>
+                    <th class="bg-base-200 "
                         >File Time UTC</th
                     >
-                    <th class="bg-base-200 border border-base-300"
+                    <th class="bg-base-200 "
                         >Last Updated At</th
                     >
-                    <th class="bg-base-200 border border-base-300">Size</th>
-                    <th class="bg-base-200 border border-base-300">Latest</th>
+                    <th class="bg-base-200 ">Size</th>
+                    <th class="bg-base-200 ">Latest</th>
                 </tr>
             </thead>
             <tbody>
@@ -414,7 +412,7 @@
                             {#if idx === 0}
                                 {@const flag = getCollectorFlag(group.collector_id)}
                                 <th
-                                    class="bg-base-100 align-middle border border-base-300 w-36"
+                                    class="bg-base-100 align-middle  w-36"
                                     rowspan={rowCount}
                                 >
                                     <button
@@ -445,14 +443,14 @@
                                     </button>
                                 </th>
                             {/if}
-                            <td class="border border-base-300">
+                            <td class="">
                                 <span
                                     class="badge badge-sm text-xs {entry.data_type === 'rib' ? 'badge-info' : 'badge-warning'}"
                                 >
                                     {entry.data_type}
                                 </span>
                             </td>
-                            <td class="border border-base-300">
+                            <td class="">
                                 {@html getStatusIcon(
                                     getCollectorStatus(
                                         entry.collector_id,
@@ -461,16 +459,16 @@
                                     ),
                                 )}
                             </td>
-                            <td class="border border-base-300 whitespace-nowrap font-mono text-xs"
+                            <td class=" whitespace-nowrap font-mono text-xs"
                                 >{entry.ts_start.replace("T", " ")}</td
                             >
-                            <td class="border border-base-300"
+                            <td class=""
                                 >{formatDurationAgo(entry.delay)}</td
                             >
-                            <td class="border border-base-300"
+                            <td class=""
                                 >{filesize(entry.rough_size).human("si")}</td
                             >
-                            <td class="border border-base-300">
+                            <td class="">
                                 <a
                                     href={entry.url}
                                     target="_blank"

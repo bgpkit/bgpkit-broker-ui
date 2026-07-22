@@ -54,6 +54,15 @@
     // svelte-ignore state_referenced_locally
     let countryFilter = $state(initialCountry || "");
 
+    // Apply cross-tab navigation filters when they change after mount
+    // (e.g. clicking "view peers" in a collector modal while already on the peers tab)
+    $effect(() => {
+        if (initialCollector) collectorFilter = initialCollector;
+    });
+    $effect(() => {
+        if (initialCountry) countryFilter = initialCountry;
+    });
+
     // Sort state
     let sortBy = $state<keyof PeersDataEntry | "fullFeed">("collector");
     let sortDirection = $state<SortDirection>("asc");
@@ -457,52 +466,50 @@
         class="overflow-auto max-h-[70vh]"
         onscroll={handleScroll}
     >
-        <table
-            class="table table-fixed table-bordered border-collapse border border-base-300 w-full"
-        >
+        <table class="table data-table table-fixed w-full">
             <thead class="sticky top-0 z-10">
-                <tr class="border-b-2 border-base-300">
+                <tr class="border-b border-base-300">
                     <th
-                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300 w-36"
+                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200  w-36"
                         onclick={() => handleSort("collector")}
                     >
                         Collector{getSortIndicator("collector")}
                     </th>
                     <th
-                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300 w-40"
+                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200  w-40"
                         onclick={() => handleSort("ip")}
                     >
                         IP{getSortIndicator("ip")}
                     </th>
                     <th
-                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300 w-48"
+                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200  w-48"
                         onclick={() => handleSort("asn")}
                     >
                         ASN{getSortIndicator("asn")}
                     </th>
-                    <th class="bg-base-200 border border-base-300 w-32"
+                    <th class="bg-base-200  w-32"
                         >Country/Region</th
                     >
                     <th
-                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300 w-32"
+                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200  w-32"
                         onclick={() => handleSort("num_v4_pfxs")}
                     >
                         IPv4 Prefixes{getSortIndicator("num_v4_pfxs")}
                     </th>
                     <th
-                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300 w-32"
+                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200  w-32"
                         onclick={() => handleSort("num_v6_pfxs")}
                     >
                         IPv6 Prefixes{getSortIndicator("num_v6_pfxs")}
                     </th>
                     <th
-                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300 w-32"
+                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200  w-32"
                         onclick={() => handleSort("num_connected_asns")}
                     >
                         Connected ASNs{getSortIndicator("num_connected_asns")}
                     </th>
                     <th
-                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200 border border-base-300 w-24"
+                        class="cursor-pointer hover:bg-base-300 select-none bg-base-200  w-24"
                         onclick={() => handleSort("fullFeed")}
                     >
                         Full-feed?{getSortIndicator("fullFeed")}
@@ -528,7 +535,7 @@
                         date: "",
                     })}
                     <tr class="hover:bg-base-200">
-                        <td class="bg-base-100 border border-base-300 w-36 overflow-hidden">
+                        <td class="bg-base-100  w-36 overflow-hidden">
                             <button
                                 class="font-mono text-sm link link-hover flex items-center gap-1"
                                 onclick={() => openCollectorModal(collector)}
@@ -551,10 +558,10 @@
                                 </svg>
                             </button>
                         </td>
-                        <td class="border border-base-300 w-40 overflow-hidden">
+                        <td class=" w-40 overflow-hidden">
                             <span class="font-mono text-sm">{ip}</span>
                         </td>
-                        <td class="border border-base-300 w-48 overflow-hidden">
+                        <td class=" w-48 overflow-hidden">
                             <div class="flex items-center gap-1">
                                 <AsnTooltip
                                     {asn}
@@ -566,7 +573,7 @@
                                 </span>
                             </div>
                         </td>
-                        <td class="border border-base-300 w-32 overflow-hidden">
+                        <td class=" w-32 overflow-hidden">
                             {#if country}
                                 <button
                                     class="badge badge-sm badge-outline gap-1 cursor-pointer hover:bg-base-200"
@@ -583,7 +590,7 @@
                                 <span class="text-base-content/40">--</span>
                             {/if}
                         </td>
-                        <td class="border border-base-300 w-32 overflow-hidden">
+                        <td class=" w-32 overflow-hidden">
                             <span class="flex items-center gap-1">
                                 {#if num_v4_pfxs > 0 && num_v4_pfxs > 700_000}
                                     <span title="Full IPv4 table">✅</span>
@@ -597,7 +604,7 @@
                                 </span>
                             </span>
                         </td>
-                        <td class="border border-base-300 w-32 overflow-hidden">
+                        <td class=" w-32 overflow-hidden">
                             <span class="flex items-center gap-1">
                                 {#if num_v6_pfxs > 0 && num_v6_pfxs > 100_000}
                                     <span title="Full IPv6 table">✅</span>
@@ -611,10 +618,10 @@
                                 </span>
                             </span>
                         </td>
-                        <td class="border border-base-300 w-32 overflow-hidden"
+                        <td class=" w-32 overflow-hidden"
                             >{num_connected_asns.toLocaleString()}</td
                         >
-                        <td class="border border-base-300 w-24 overflow-hidden">
+                        <td class=" w-24 overflow-hidden">
                             {#if peerIsFullFeed}
                                 <span class="badge badge-success badge-sm"
                                     >Yes</span

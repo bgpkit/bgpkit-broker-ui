@@ -51,6 +51,11 @@
         return `${y}-${m}-${d}T00:00:00Z`;
     }
 
+    // Returns the current time as RFC3339 (seconds precision)
+    function nowUtcRfc3339(): string {
+        return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+    }
+
     // RFC3339 → "YYYY-MM-DD" for date input
     function toDateValue(rfc: string): string {
         if (!rfc) return "";
@@ -78,9 +83,10 @@
     }
 
     function handleStartTime(e: Event) {
-        const time = (e.target as HTMLInputElement).value;
+        const raw = (e.target as HTMLInputElement).value;
+        const time = normaliseTime(raw);
         const date = toDateValue(tsStart) || toDateValue(todayUtcRfc3339());
-        tsStart = fromDateTimeValues(date, time);
+        if (time) tsStart = fromDateTimeValues(date, time);
         if (tsEnd && tsEnd < tsStart) tsEnd = tsStart;
         updateUrl();
     }
@@ -89,6 +95,7 @@
         const date = (e.target as HTMLInputElement).value;
         const time = toTimeValue(tsEnd) || "00:00";
         tsEnd = fromDateTimeValues(date, time);
+        if (tsStart && tsEnd < tsStart) tsEnd = tsStart;
         updateUrl();
     }
 
@@ -97,6 +104,7 @@
         const time = normaliseTime(raw);
         const date = toDateValue(tsEnd) || toDateValue(tsStart) || toDateValue(todayUtcRfc3339());
         if (time) tsEnd = fromDateTimeValues(date, time);
+        if (tsStart && tsEnd < tsStart) tsEnd = tsStart;
         updateUrl();
     }
 
@@ -174,7 +182,7 @@
         }
 
         if (!tsStart) tsStart = todayUtcRfc3339();
-        if (!tsEnd) tsEnd = todayUtcRfc3339();
+        if (!tsEnd) tsEnd = nowUtcRfc3339();
 
         if (urlChanged) window.history.replaceState({}, "", url.toString());
 
@@ -232,9 +240,8 @@
     }
 
     function clearFilters() {
-        const today = todayUtcRfc3339();
-        tsStart = today;
-        tsEnd = today;
+        tsStart = todayUtcRfc3339();
+        tsEnd = nowUtcRfc3339();
         project = "all";
         collectorId = "";
         dataType = "all";
@@ -447,44 +454,44 @@
         </div>
 
         <div class="overflow-auto max-h-[65vh]">
-            <table class="table table-bordered border-collapse border border-base-300 text-sm">
+            <table class="table data-table text-sm">
                 <thead class="sticky top-0 z-10">
-                    <tr class="border-b-2 border-base-300">
-                        <th class="bg-base-200 border border-base-300">Collector</th>
-                        <th class="bg-base-200 border border-base-300">Type</th>
-                        <th class="bg-base-200 border border-base-300">File Start (UTC)</th>
-                        <th class="bg-base-200 border border-base-300">File End (UTC)</th>
-                        <th class="bg-base-200 border border-base-300">Size</th>
-                        <th class="bg-base-200 border border-base-300">Download</th>
+                    <tr class="border-b border-base-300">
+                        <th class="bg-base-200 ">Collector</th>
+                        <th class="bg-base-200 ">Type</th>
+                        <th class="bg-base-200 ">File Start (UTC)</th>
+                        <th class="bg-base-200 ">File End (UTC)</th>
+                        <th class="bg-base-200 ">Size</th>
+                        <th class="bg-base-200 ">Download</th>
                     </tr>
                 </thead>
                 <tbody>
                     {#each results.data as item}
                         {@const flag = getCollectorFlag(item.collector_id)}
                         <tr class="hover:bg-base-200">
-                            <td class="border border-base-300 font-mono">
+                            <td class=" font-mono">
                                 {#if flag}
                                     <span class="mr-1">{flag}</span>
                                 {/if}
                                 {item.collector_id}
                             </td>
-                            <td class="border border-base-300">
+                            <td class="">
                                 <span class="badge badge-ghost badge-sm text-xs">
                                     {item.data_type}
                                 </span>
                             </td>
-                            <td class="border border-base-300 whitespace-nowrap">
+                            <td class=" whitespace-nowrap">
                                 {formatTs(item.ts_start)}
                             </td>
-                            <td class="border border-base-300 whitespace-nowrap">
+                            <td class=" whitespace-nowrap">
                                 {formatTs(item.ts_end)}
                             </td>
-                            <td class="border border-base-300 whitespace-nowrap">
+                            <td class=" whitespace-nowrap">
                                 {item.exact_size
                                     ? filesize(item.exact_size).human("si")
                                     : filesize(item.rough_size).human("si")}
                             </td>
-                            <td class="border border-base-300">
+                            <td class="">
                                 <a
                                     href={item.url}
                                     target="_blank"

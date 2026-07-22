@@ -22,29 +22,41 @@
     });
 </script>
 
-<div class="stats shadow-lg w-full sm:flex-1 border-l-4 border-success">
+<div class="rounded-lg border border-base-300 bg-base-100 p-4">
     {#if !ready}
-        <span class="loading loading-dots loading-lg"></span>
+        <div class="flex justify-center py-4">
+            <span class="loading loading-dots loading-md"></span>
+        </div>
     {:else}
-        <div class="stat py-3 sm:py-4">
-            <div class="stat-title text-xs sm:text-sm">Data On-time Rate</div>
-            <div class="stat-value text-2xl sm:text-3xl">{(onTimeRate * 100).toFixed(1)}%</div>
+        <div
+            class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-base-content/55"
+        >
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="h-3.5 w-3.5"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                />
+            </svg>
+            Data On-time Rate
+        </div>
+        <div class="mt-2 text-3xl font-semibold tracking-tight tabular-nums">
+            {(onTimeRate * 100).toFixed(1)}%
+        </div>
+        <div class="mt-1 flex items-center gap-1.5 text-xs text-base-content/55">
             {#if delayed.length === 0}
-                <div class="inline-flex items-center space-x-2">
-                    <div class="inline-grid *:[grid-area:1/1]">
-                        <div class="status status-success animate-ping"></div>
-                        <div class="status status-success"></div>
-                    </div>
-                    <div class="stat-desc text-xs">All on time</div>
-                </div>
+                <span class="status status-success status-sm"></span>
+                All on time
             {:else}
-                <div class="inline-flex items-center space-x-2">
-                    <div class="inline-grid *:[grid-area:1/1]">
-                        <div class="status status-error animate-ping"></div>
-                        <div class="status status-error"></div>
-                    </div>
-                    <div class="stat-desc text-xs">Delayed: {delayed.slice(0, 2).join(", ")}{delayed.length > 2 ? "..." : ""}</div>
-                </div>
+                <span class="status status-error status-sm"></span>
+                Delayed: {delayed.slice(0, 2).join(", ")}{delayed.length > 2 ? "…" : ""}
             {/if}
         </div>
     {/if}
