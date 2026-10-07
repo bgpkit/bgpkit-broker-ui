@@ -2,6 +2,11 @@ import type { PageServerLoad } from "./$types";
 import type { BrokerData, PeersData, AsnInfo, CollectorInfo, BrokerHealthData, StreamsData } from "$lib/types";
 import { fetchAsnInfoBatch } from "$lib/asnCache";
 
+// Temporary v4 test: collector status and health are read from the v4 dev API.
+// peers, collectors, streams and ASN lookups are not served by v4 yet and stay on v3.
+const V3_API = "https://api.bgpkit.com/v3/broker";
+const V4_API = "https://dev.api.bgpkit.com/v4/broker";
+
 async function readJsonResponse<T>(response: Response, label: string): Promise<T> {
   if (!response.ok) {
     throw new Error(`${label} request failed: ${response.status} ${response.statusText}`);
@@ -33,11 +38,11 @@ export const load: PageServerLoad = async ({ fetch, url, platform }): Promise<{
   initialTab: number;
 }> => {
   const [brokerResponse, peersResponse, collectorsResponse, healthResponse, streamsResponse] = await Promise.all([
-    fetch("https://api.bgpkit.com/v3/broker/latest"),
-    fetch("https://api.bgpkit.com/v3/broker/peers"),
-    fetch("https://api.bgpkit.com/v3/broker/collectors"),
-    fetch("https://api.bgpkit.com/v3/broker/health"),
-    fetch("https://api.bgpkit.com/v3/broker/streams"),
+    fetch(`${V4_API}/latest`),
+    fetch(`${V3_API}/peers`),
+    fetch(`${V3_API}/collectors`),
+    fetch(`${V4_API}/health`),
+    fetch(`${V3_API}/streams`),
   ]);
 
   const [brokerData, peersData, collectorsResponseJson, healthData, streamsData] = await Promise.all([
