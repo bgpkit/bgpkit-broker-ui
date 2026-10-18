@@ -11,22 +11,44 @@
     import MrtSearch from "$lib/tables/MrtSearch.svelte";
     import StreamsTable from "$lib/tables/streamsTable.svelte";
     import LiveEvents from "$lib/tables/liveEvents.svelte";
-    import type { AsnInfo } from "$lib/types";
+    import type { AsnInfo, PeersData } from "$lib/types";
+    import { fetchAsnInfoBatch } from "$lib/asnCache";
+    import { onMount } from "svelte";
     import { browser } from "$app/environment";
 
     /** @type {import('./$types').PageData} */
     let { data } = $props();
 
     let brokerData = $derived(data.brokerData);
-    let peersData = $derived(data.peersData);
+    // svelte-ignore state_referenced_locally
+    let peersData = $state<PeersData | null>(data.peersData);
     let collectorsData = $derived(data.collectorsData);
     let healthData = $derived(data.healthData);
     let streamsData = $derived(data.streamsData);
 
-    // ASN data - now loaded server-side with KV caching
-    let asnData = $derived(data.asnData);
-    let asnLoading = $state(false);
+    // Peers and ASN enrichment are loaded in the browser so the SSR payload stays
+    // small; the peer table is only needed after the shell renders.
+    // svelte-ignore state_referenced_locally
+    let asnData = $state<Map<number, AsnInfo>>(data.asnData);
+    let asnLoading = $state(true);
     let asnLoadProgress = $derived({ loaded: asnData.size, total: asnData.size });
+
+    onMount(async () => {
+        try {
+            const response = await fetch("https://api.bgpkit.com/v3/broker/peers");
+            if (!response.ok) {
+                throw new Error(`peers request failed: ${response.status}`);
+            }
+            const peers = (await response.json()) as PeersData;
+            peersData = peers;
+            const asns = [...new Set(peers.data.map((peer) => peer.asn))];
+            asnData = await fetchAsnInfoBatch(asns);
+        } catch (error) {
+            console.error("failed to load peer table data", error);
+        } finally {
+            asnLoading = false;
+        }
+    });
 
     // Tab state - 0 = Route Collectors, 1 = Collector Peers, 2 = Collector Selector, 3 = MRT Search, 4 = Streams, 5 = Live Updates
     // svelte-ignore state_referenced_locally
@@ -227,7 +249,13 @@
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <CollectorStats {brokerData} />
         <OnTimeStats {brokerData} />
-        <PeersStats {peersData} />
+        {#if peersData}
+            <PeersStats {peersData} />
+        {:else}
+            <div class="rounded-lg border border-base-300 bg-base-100 p-4">
+                <span class="loading loading-dots loading-md"></span>
+            </div>
+        {/if}
         <CountryStats {peersData} {asnData} isLoading={asnLoading} />
         <BrokerHealthStats {healthData} />
     </div>

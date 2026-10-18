@@ -7,7 +7,7 @@
         asnData,
         isLoading = false,
     }: {
-        peersData: PeersData;
+        peersData: PeersData | null;
         asnData: Map<number, AsnInfo>;
         isLoading?: boolean;
     } = $props();

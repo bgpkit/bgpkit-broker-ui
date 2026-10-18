@@ -1,6 +1,5 @@
 import type { PageServerLoad } from "./$types";
 import type { BrokerData, PeersData, AsnInfo, CollectorInfo, BrokerHealthData, StreamsData } from "$lib/types";
-import { fetchAsnInfoBatch } from "$lib/asnCache";
 
 // Temporary v4 test: collector status and health are read from the v4 dev API.
 // peers, collectors, streams and ASN lookups are not served by v4 yet and stay on v3.
@@ -28,26 +27,24 @@ async function readOptionalJsonResponse<T>(response: Response, label: string): P
   }
 }
 
-export const load: PageServerLoad = async ({ fetch, url, platform }): Promise<{
+export const load: PageServerLoad = async ({ fetch, url }): Promise<{
   brokerData: BrokerData;
-  peersData: PeersData;
+  peersData: PeersData | null;
   asnData: Map<number, AsnInfo>;
   collectorsData: CollectorInfo[];
   healthData: BrokerHealthData | null;
   streamsData: StreamsData | null;
   initialTab: number;
 }> => {
-  const [brokerResponse, peersResponse, collectorsResponse, healthResponse, streamsResponse] = await Promise.all([
+  const [brokerResponse, collectorsResponse, healthResponse, streamsResponse] = await Promise.all([
     fetch(`${V4_API}/latest`),
-    fetch(`${V3_API}/peers`),
     fetch(`${V3_API}/collectors`),
     fetch(`${V4_API}/health`),
     fetch(`${V3_API}/streams`),
   ]);
 
-  const [brokerData, peersData, collectorsResponseJson, healthData, streamsData] = await Promise.all([
+  const [brokerData, collectorsResponseJson, healthData, streamsData] = await Promise.all([
     readJsonResponse<BrokerData>(brokerResponse, "Broker latest API"),
-    readJsonResponse<PeersData>(peersResponse, "Broker peers API"),
     readJsonResponse<{ data?: CollectorInfo[] }>(collectorsResponse, "Collectors API"),
     readOptionalJsonResponse<BrokerHealthData>(healthResponse, "Broker health API"),
     readOptionalJsonResponse<StreamsData>(streamsResponse, "RouteViews streams API"),
@@ -68,13 +65,13 @@ export const load: PageServerLoad = async ({ fetch, url, platform }): Promise<{
     initialTab = 1;
   }
 
-  const uniqueAsns = [...new Set(peersData.data.map((peer) => peer.asn))];
-  const asnData = await fetchAsnInfoBatch(uniqueAsns, undefined, platform?.env);
-
+  // Peers and ASN enrichment are loaded client-side: the peer table is the bulk of
+  // the SSR payload (3.4k rows, 837 unique ASNs + one ASN lookup per render) and is
+  // only needed once a tab that shows it is opened.
   return {
     brokerData,
-    peersData,
-    asnData,
+    peersData: null,
+    asnData: new Map<number, AsnInfo>(),
     collectorsData,
     healthData,
     streamsData,
