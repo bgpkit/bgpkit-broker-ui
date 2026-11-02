@@ -1,60 +1,30 @@
 import type { Handle } from "@sveltejs/kit";
 
-// The status page re-renders the full broker dataset on every request. A 60s cache
-// keyed by URL absorbs bursts without making the "latest files" panel noticeably
-// stale. The cache lives in KV rather than the edge cache on purpose: a response put
-// into caches.default is replayed by Cloudflare with the zone's browser TTL
-// (max-age=14400 here), which would freeze the page in visitors' browsers for hours.
-const TTL_SECONDS = 60;
+// The collector status page moved to https://broker.bgpkit.com, served by the
+// bgp-fyi-atlas worker. This worker stays deployed only to answer the two legacy
+// hostnames, so every request is a permanent redirect to the live page.
+//
+// The redirect keeps the path and query, because a bookmarked URL such as
+// /?tab=peers should not lose where it pointed; the new page ignores the parts it
+// does not understand.
+//
+// The 301 carries a five-minute browser cache on purpose. The rollback for this
+// change is one deploy, and an unexpiring 301 in visitors' browsers would outlive
+// the rollback: five minutes lets a mistake heal on its own while still telling
+// crawlers the move is permanent.
+const CANONICAL = "https://broker.bgpkit.com";
+const REDIRECT_TTL_SECONDS = 300;
 
-type CachePlatform = {
-  env?: { ASN_CACHE?: KVNamespace };
-  context?: { waitUntil?: (promise: Promise<unknown>) => void };
-};
+export const handle: Handle = async ({ event }) => {
+  const target = new URL(CANONICAL);
+  target.pathname = event.url.pathname;
+  target.search = event.url.search;
 
-export const handle: Handle = async ({ event, resolve }) => {
-  if (event.request.method !== "GET" || event.url.pathname !== "/") {
-    return resolve(event);
-  }
-
-  const platform = event.platform as CachePlatform | undefined;
-  const kv = platform?.env?.ASN_CACHE;
-  if (!kv) return resolve(event);
-
-  const key = `page:${event.url.pathname}${event.url.search}`;
-  const cached = await kv.get(key, { type: "text" });
-  if (cached) {
-    return new Response(cached, {
-      status: 200,
-      headers: {
-        "content-type": "text/html; charset=utf-8",
-        "cache-control": "no-store",
-        "x-broker-ui-cache": "kv-hit",
-      },
-    });
-  }
-
-  const response = await resolve(event);
-  if (
-    response.status !== 200 ||
-    !response.headers.get("content-type")?.includes("text/html")
-  ) {
-    return response;
-  }
-
-  const body = await response.clone().text();
-  const put = kv.put(key, body, { expirationTtl: TTL_SECONDS });
-  if (platform?.context?.waitUntil) {
-    platform.context.waitUntil(put);
-  } else {
-    await put;
-  }
-  return new Response(body, {
-    status: 200,
+  return new Response(null, {
+    status: 301,
     headers: {
-      "content-type": "text/html; charset=utf-8",
-      "cache-control": "no-store",
-      "x-broker-ui-cache": "miss",
+      location: target.toString(),
+      "cache-control": `public, max-age=${REDIRECT_TTL_SECONDS}`,
     },
   });
 };
