@@ -1,10 +1,13 @@
 import type { PageServerLoad } from "./$types";
 import type { BrokerData, PeersData, AsnInfo, CollectorInfo, BrokerHealthData, StreamsData } from "$lib/types";
 
-// Temporary v4 test: collector status and health are read from the v4 dev API.
-// peers, collectors, streams and ASN lookups are not served by v4 yet and stay on v3.
+// Everything on this page reads the v3 broker surface, which is what the status page has always
+// consumed and whose row shapes the components are written against. The temporary v4 test that
+// pointed `latest` and `health` at dev.api.bgpkit.com/v4/broker was retired with the v4
+// restructure: those paths no longer exist, and their replacements
+// (/v4/mrt/collectors/latest, /v4/meta/health) answer different shapes, so adopting them is its
+// own change rather than a URL swap.
 const V3_API = "https://api.bgpkit.com/v3/broker";
-const V4_API = "https://dev.api.bgpkit.com/v4/broker";
 
 async function readJsonResponse<T>(response: Response, label: string): Promise<T> {
   if (!response.ok) {
@@ -37,9 +40,9 @@ export const load: PageServerLoad = async ({ fetch, url }): Promise<{
   initialTab: number;
 }> => {
   const [brokerResponse, collectorsResponse, healthResponse, streamsResponse] = await Promise.all([
-    fetch(`${V4_API}/latest`),
+    fetch(`${V3_API}/latest`),
     fetch(`${V3_API}/collectors`),
-    fetch(`${V4_API}/health`),
+    fetch(`${V3_API}/health`),
     fetch(`${V3_API}/streams`),
   ]);
 

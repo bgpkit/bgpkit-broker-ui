@@ -13,6 +13,13 @@ binding = "ASSETS"
 command = "npm run build"
 
 # Custom domain configuration
+#
+# broker.bgpkit.com is the page itself; the two legacy hostnames stay attached so the worker can
+# answer them with the redirect in src/hooks.server.ts.
+[[routes]]
+pattern = "broker.bgpkit.com"
+custom_domain = true
+
 [[routes]]
 pattern = "status.broker.bgpkit.com"
 custom_domain = true
