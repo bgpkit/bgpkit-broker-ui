@@ -7,6 +7,7 @@
     import PeersStats from "$lib/stats/peersStats.svelte";
     import CountryStats from "$lib/stats/countryStats.svelte";
     import BrokerHealthStats from "$lib/stats/brokerHealthStats.svelte";
+    import ArchiveCoverage from "$lib/components/ArchiveCoverage.svelte";
     import CollectorSelector from "$lib/components/CollectorSelector.svelte";
     import MrtSearch from "$lib/tables/MrtSearch.svelte";
     import StreamsTable from "$lib/tables/streamsTable.svelte";
@@ -258,6 +259,10 @@
         {/if}
         <CountryStats {peersData} {asnData} isLoading={asnLoading} />
         <BrokerHealthStats {healthData} />
+    </div>
+
+    <div class="mt-3">
+        <ArchiveCoverage />
     </div>
 
     <div role="tablist" class="tabs tabs-border mt-8">
