@@ -54,9 +54,6 @@
     // Tab state - 0 = Route Collectors, 1 = Collector Peers, 2 = Collector Selector, 3 = MRT Search, 4 = Streams, 5 = Live Updates
     // svelte-ignore state_referenced_locally
     let activeTab = $state(data.initialTab);
-    // Archive coverage pulls a multi-year daily series; mount it only when the reader asks for it, so
-    // the first paint does not wait on that request.
-    let coverageOpen = $state(false);
     let urlTabInitialized = $state(true);
 
     // Update URL and cleanup when tab changes
@@ -265,19 +262,7 @@
     </div>
 
     <div class="mt-3">
-        <details class="rounded-lg border border-base-300 bg-base-100" bind:open={coverageOpen}>
-            <summary class="cursor-pointer px-4 py-3 text-sm font-medium">
-                Archive coverage
-                <span class="ml-1 font-normal opacity-70">
-                    (daily parse status per project; loads on demand because the series is years long)
-                </span>
-            </summary>
-            <div class="px-2 pb-2">
-                {#if coverageOpen}
-                    <ArchiveCoverage />
-                {/if}
-            </div>
-        </details>
+        <ArchiveCoverage />
     </div>
 
     <div role="tablist" class="tabs tabs-border mt-8">
