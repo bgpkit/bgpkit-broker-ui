@@ -14,12 +14,10 @@ command = "npm run build"
 
 # Custom domain configuration
 #
-# broker.bgpkit.com is the page itself; the two legacy hostnames stay attached so the worker can
-# answer them with the redirect in src/hooks.server.ts.
-[[routes]]
-pattern = "broker.bgpkit.com"
-custom_domain = true
-
+# This Worker is no longer the broker page: broker.bgpkit.com belongs to the broker-next Worker, and
+# this one answers the two legacy hostnames with the redirect in src/hooks.server.ts. The broker route
+# is deliberately gone: while it was declared here, a deploy of this Worker silently took the live
+# hostname over and replaced the current page with this one.
 [[routes]]
 pattern = "status.broker.bgpkit.com"
 custom_domain = true
